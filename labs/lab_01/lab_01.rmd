@@ -1,0 +1,130 @@
+---
+title: "lab_01"
+author: "Khushboo Rathore"
+date: "2023-02-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Turn off scientific notation
+options(scipen=999)
+```
+
+## About this lab
+
+To complete this lab, you need to: \* run existing code as directed (look for **Task**). \* modify existing code as directed (look for **Task**). \* write code in empty codeblocks provided to answer questions included (look for **Q**). \* write out the answer in the form of a complete sentence in the space given (look for **A**). When you are finished, commit changes and push to your personal GitHub repo, then submit the URL to this document on ELMS.
+
+Remember to add any new verbs or concepts to your class reference notebook!
+
+## Load libraries and establish settings
+
+**Task** Run the codeblock below to load the Tidyverse. To run the codeblock, hit the little green play button in the upper right corner of the gray area (the codeblock) below.
+
+```{r}
+# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
+# install.packages('tidyverse')
+library(tidyverse)
+```
+
+## Load Data
+
+We're going to load the UMD courses data.
+
+**Task** Run the codeblock below to load the data, which is contained in an RDS file.
+
+```{r}
+umd_courses <- read_rds("lab_01.rds")
+```
+
+## Answer questions
+
+**Q1** Which department has the highest mean (average) number of seats for its classes? You need to show the department with the highest average first.
+**A1** 
+Chemistry. 
+
+```{r}
+umd_courses %>%
+  group_by(department) %>%
+  summarize(
+    mean_seats = mean(seats)
+  ) %>% 
+  arrange(desc(mean_seats))
+# Of note, the highest mean seats was Engineering Co-ops, then FIRE (an honors program), and then "University courses" and "Engineering Science (all engineering)" I decided to skip these because I define a department as a MAJOR, not as a group of related courses.
+  
+```
+
+**Q2** Find out the greatest number of times any individual class has been offered in our dataset. You must show the greatest number of classes first.
+**A2**
+21
+
+```{r}
+umd_courses %>%
+  group_by(id) %>%
+  # Of note, it could also be grouped by TITLE, which would cause any internships across departments, thesis research, etc. to be grouped together, giving a much higher results. However, I didn't think that this is an accurate reflection of "individual class" offerings.
+  summarize (
+    times_offered = n()
+  ) %>% 
+  arrange(desc(times_offered))
+```
+
+**Q3** Count the number of courses for each instructor and department. Which instructor has taught the most? 
+**A3** 
+Keith Yearwood
+```{r}
+umd_courses %>%
+  filter(!is.na(instructors)) %>% 
+  group_by(instructors, department) %>%
+  # Of Note, when this is not grouped by department, Jason Kuo has taught 66 courses. This means he has taught across departments. However, taking away the department grouping leaves the data open to faults from professors with the same name across different departments. Therefore, I decided on Keith Yearwood.
+  summarize(
+    instructor_ct = n()
+  ) %>% 
+  arrange(desc(instructor_ct))
+```
+
+**Q4** Given the results for Q3, what would have made it easier to find the answer? You don't have to know _how_ to accomplish this; I want you to describe in words what would make the answer easier to see.
+**A4**
+It would have been easier to find out which instructor has the most if we had been able to filter out all the courses that did not have instructors recorded. Another thing would be to remove the group by department. However, this could cause issues if professors have the exact same name. Additionally, the fact that there are so many TBA instructors can change the results. If professors did teach those courses, their contributions are not being considered because of the TBA.
+
+
+**Q5** Take one of the questions you listed in the final question of the pre_lab and try to answer it here in code. If you don't know how to fully answer it, write what code you can and describe in words what else you would need to do. If you got an answer, is it interesting?
+**A5**
+Question: Do courses tend to have the same amount of seats each semester? How much does the seat availability vary and can this indicate growth or decline of certain majors?
+Other commentary is in the codeblock
+```{r}
+# Create additional columns based on current data, which will allow for easier filtering. Also cut data to courses below the 400 level since I feel like those are more significant to the question.
+splits <- umd_courses %>%
+  separate(col=term, into=c("year","semester"), sep=4) %>% 
+  separate(col=id, into=c("code", "level"), sep=4) %>% 
+  filter(level < 400)
+
+# Look specifically at fall semester courses and how many seats there have been per course over the years  
+fall <- splits %>% 
+  filter(semester == "08") %>% 
+  group_by(code, level, year, semester) %>% 
+  summarize(
+    total_seats = sum(seats)
+  ) %>% 
+  arrange(code, level, desc(year), semester)
+
+# Look specifically at spring semester courses and how many seats there have been per course over the years  
+spring <- splits %>% 
+  filter(semester == "01") %>% 
+  group_by(code, level, year, semester) %>% 
+  summarize(
+    total_seats = sum(seats)
+  ) %>% 
+  arrange(code, level, desc(year), semester)
+
+# Look at the years surround COVID-19 and how seat offerings changed during the pandemic.
+comparecovid <- splits %>% 
+  filter(semester == "08" | semester == "01", year == "2020" | year == "2021" | year == "2019") %>%
+  group_by(code, level, year, semester) %>% 
+  summarize(
+    total_seats = sum(seats)
+  ) %>% 
+  arrange(code, level, desc(year), semester)
+
+# The problem with my current analysis is that online courses were 202008 and 202101, so I would want to group by academic year rather than calendar year. It might also be good to look at medians or totals across the university/across departments for seats each academic year. That would be more manageable to look at and possibly more reflective of the data. Additionally, I would likely want to exclude any lab classes in a COVID analysis, since they were very different from normal lab classes. 
+# The thing that was interesting to me from this preliminary look was that many more <400 level classes were offered in the Spring. 
+```
