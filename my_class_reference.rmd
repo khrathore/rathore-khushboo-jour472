@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 print("Hello puppy!")
 ```
+# Class 1
 
 ## Introduction
 
@@ -42,5 +43,23 @@ library(tidyverse)
 
 ```{r}
 wes_moore_contributions <- read.csv("https://raw.githubusercontent.com/stephenneukam/CNS_Annapolis/main/Campaign_finance/Moore_ContributionsList.csv")
+```
+
+# Class 2
+
+## How to filter
+```{r}
+and_theatre_seats_15 <- umd_courses %>% filter(department == "Theatre" | seats >= 15)
+nrow(and_theatre_seats_15)
+
+umd_courses %>% 
+  filter(str_detect(title, "Shakespeare"))
+```
+
+## Using Lubridate
+```{r}
+maryland_expenses <- maryland_expenses %>% mutate(expenditure_date=mdy(expenditure_date))
+
+head(maryland_expenses)
 ```
 
