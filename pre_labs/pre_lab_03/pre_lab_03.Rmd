@@ -282,7 +282,6 @@ cleaned_md_grants_loans <- md_grants_loans %>%
     str_detect(zip5, "^UB7") ~ as.character(NA),
     str_length(zip5) == 4 ~ paste0("0",zip5),
     TRUE ~ zip5
-    
   ))
 
 # display the cleaned dataset
@@ -293,7 +292,7 @@ cleaned_md_grants_loans
 
 **Task** Write and run code to answer our original question: which zip code has gotten the most amount of money from the Maryland Tourism Board?
 
-21202, which is in Baltimore
+21202, which is in Baltimore. That makes sense to me since Baltimore has the aquarium and the harbor, which are pretty significant locations in Maryland. It's also on a main highway, so many people pass through there and it would make more sense for the state to give them money.
 ```{r}
 cleaned_md_grants_loans %>% 
   filter(str_detect(source,"MARYLAND TOURISM BOARD")) %>% 
