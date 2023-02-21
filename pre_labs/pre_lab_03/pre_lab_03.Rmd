@@ -280,7 +280,9 @@ cleaned_md_grants_loans <- md_grants_loans %>%
   mutate(zip5 = case_when(
     zip5 == "Vario" ~ as.character(NA),
     str_detect(zip5, "^UB7") ~ as.character(NA),
+    str_length(zip5) == 4 ~ paste0("0",zip5),
     TRUE ~ zip5
+    
   ))
 
 # display the cleaned dataset
