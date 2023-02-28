@@ -51,8 +51,9 @@ md_grant_loans
 
 ### Task 4: Group and count to identify problems in Grantee column
 
-**Task** Run the following code to group and count records in the Grantee column, and filter to examine only recipients that start with W. Name a problem that you see that is preventing proper grouping. **Answer**
-
+**Task** Run the following code to group and count records in the Grantee column, and filter to examine only recipients that start with W. Name a problem that you see that is preventing proper grouping. 
+**Answer**
+The names are inconsistent for many of the grantees.
 ```{r}
 # Now let's try and group and count the number of expenditures by recipient. To make it a bit more manageable, let's use another string function from `stringr` and filter for recipients that start with the uppercase "W" or lowercase "w" using the function `str_detect()` with a regular expression.  
 
@@ -71,7 +72,7 @@ md_grant_loans %>%
 
 **Task** Run the following code to make a copy of the Grantee field called grantee_clean, then use the `key_collision_merge` function from refinr to attempt to standardize similar values. Store it as a new object called cleaned_md_grant_loans Click the black arrow on the table to examine the Grantee and grantee_clean columns. Looking at the results on the first 3 pages only (first 30 rows), name two changes the refinr package made, by comparing Grantee to grantee_clean.
 **Answer**
-
+Washington County Museum of Fine Arts was changed to all uppercase, Inc was removed from Charles County Arts Alliance and it was made fully uppercase.
 ```{r}
 cleaned_md_grant_loans <- md_grant_loans %>%
   mutate(grantee_clean=key_collision_merge(Grantee)) %>%
@@ -83,8 +84,10 @@ cleaned_md_grant_loans
 
 ### Task 6: Filter cleaned_md_grant_loans to examine recipients that start with W
 
-**Task** Run the following code to group by grantee_clean and Grantee, then filter for recipients that start with W. Name three changes the refinr function made in the first 30 results. **Answer**
-
+**Task** Run the following code to group by grantee_clean and Grantee, then filter for recipients that start with W. Name three changes the refinr function made in the first 30 results. 
+**Answer**
+Washington Adventist University was changed to title case.
+That was the only change I could find in the first 30.
 ```{r}
 cleaned_md_grant_loans %>%
   group_by(Grantee, grantee_clean) %>%
@@ -99,7 +102,7 @@ cleaned_md_grant_loans %>%
 
 **Task** Run the following code to use the n_gram_merge() function to clean the data, then group by grantee_clean and Grantee to examine recipients that start with W. Look at the differences. Does the changes it made vary substantially from the previous use of key_collision_merge? 
 **Answer**
-
+Not really
 ```{r}
 cleaned_md_grant_loans <- md_grant_loans %>%
   mutate(grantee_clean=n_gram_merge(Grantee)) %>%
