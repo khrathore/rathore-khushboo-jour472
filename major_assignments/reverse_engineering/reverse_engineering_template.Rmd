@@ -1,8 +1,7 @@
 ---
 title: "Reverse Engineering Project"
-author: "Student names here"
-date: "Date here"
-output:
+author: "Caroline Koutsos, Khushboo Rathore"
+date: "04 March 2023"
   html_document:
     theme: cerulean
     highlight: pygments
@@ -18,14 +17,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction 
 
-In this notebook, we are reverse engineering the story, [STORY NAME](STORY URL)
+In this notebook, we are reverse engineering the story, [Inside The Political Donation History Of Wealthy Sports Owners](https://fivethirtyeight.com/features/inside-the-political-donation-history-of-wealthy-sports-owners/)
 
 ## Load libraries
 
 Loading required libraries for this analysis.
 
 ```{r echo=FALSE, message=FALSE}
-
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(dplyr)
 ```
 
 ## Load and Cleaning Data
@@ -34,12 +36,14 @@ In this section, describe the source of the data, write a basic data dictionary 
 
 ```{r}
 # Load required data
-
 # Path to data should be loaded from folder "data" i.e. read_csv("data/name_of_data.csv")
-
 # Clean required data and prepare for analysis if needed. 
+political_donos <- read.csv("data/sports-political-donations.csv")
 
-
+donos_clean <- political_donos %>% 
+  clean_names() %>% 
+  mutate(party = na_if(party, "N/A")) %>% 
+  mutate(amount = as.numeric(gsub("[\\$,]", "",amount)))
 ```
 
 ## Sentences to Engineer
@@ -47,14 +51,31 @@ In this notebook, we are reverse engineering five sentences from the story.
 
 ### Sentence 1
 
-* **Sentence text**: [Paste in sentence to engineer here]
+* **Sentence text**: [“Of the 160 owners and commissioners in ESPN’s database, 74 contributed a majority of their publicly searchable funds to Republican campaigns, with 48 donating a majority to Democrats and the rest sending most of their money to causes that aren’t fully aligned with either party.”]
 * **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
 
 ```{r}
 # Put code to reverse engineer sentence here
-
 # Display results of code below this codeblock
+dono_count <- donos_clean %>%
+  group_by(owner, party) %>%
+  summarize(
+    tot_dono = sum(amount)
+  ) %>% 
+  pivot_wider(names_from = party, values_from = tot_dono) %>% 
+  replace(is.na(.), 0)
 
+dono_count$top_party = colnames(dono_count)[apply(dono_count,1,which.max)]
+
+count_republican <- dono_count %>% 
+  filter(str_detect(top_party, "Republican")) %>% 
+  nrow()
+
+
+
+donor_count <- donos_clean %>% 
+  distinct(owner) %>% 
+  nrow()
 ```
 
 ### Sentence 2
