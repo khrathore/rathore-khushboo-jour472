@@ -51,8 +51,8 @@ In this notebook, we are reverse engineering five sentences from the story.
 
 ### Sentence 1
 
-* **Sentence text**: [“Of the 160 owners and commissioners in ESPN’s database, 74 contributed a majority of their publicly searchable funds to Republican campaigns, with 48 donating a majority to Democrats and the rest sending most of their money to causes that aren’t fully aligned with either party.”]
-* **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
+* **Sentence text**: “Of the 160 owners and commissioners in ESPN’s database, 74 contributed a majority of their publicly searchable funds to Republican campaigns, with 48 donating a majority to Democrats and the rest sending most of their money to causes that aren’t fully aligned with either party.”
+* **Analysis summary**: The analysis we completed resulted in slightly different numbers. We found 158 donors, with 50 donating majority Democrat, 71 donating majority Republican, and 37 donating to some other party or interest. We think the author may have added bipartisan (but leaning) money to the category it leaned towards. Additionally, the numbers are not so far as to cause huge concern but it is kind of odd.
 
 ```{r}
 # Put code to reverse engineer sentence here
@@ -71,7 +71,13 @@ count_republican <- dono_count %>%
   filter(str_detect(top_party, "Republican")) %>% 
   nrow()
 
+count_democrat <- dono_count %>% 
+  filter(str_detect(top_party, "Democrat")) %>% 
+  nrow()
 
+count_other <- dono_count %>% 
+  filter(!(top_party == "Democrat" | top_party == "Republican")) %>% 
+  nrow()
 
 donor_count <- donos_clean %>% 
   distinct(owner) %>% 
@@ -80,7 +86,7 @@ donor_count <- donos_clean %>%
 
 ### Sentence 2
 
-* **Sentence text**: [Paste in sentence to engineer here]
+* **Sentence text**: "But while that overall summary is interesting, a more pronounced signal begins to emerge when we look more closely at this group’s larger political donations. There are 40 owners who have donated at least $100,000 to Republican causes over the six-year period, compared to 23 owners topping $100,000 to Democrats, helping lead to these splits:"
 * **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
 
 ```{r}
@@ -92,7 +98,7 @@ donor_count <- donos_clean %>%
 
 ### Sentence 3
 
-* **Sentence text**: [Paste in sentence to engineer here]
+* **Sentence text**: “Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans. And of the $1.3 million contributed by WNBA owners to Republicans, 65.5 percent comes from Kelly Loeffler, the Republican from Georgia who is co-owner of the Atlanta Dream.”
 * **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
 
 ```{r}
@@ -104,7 +110,7 @@ donor_count <- donos_clean %>%
 
 ### Sentence 4
 
-* **Sentence text**: [Paste in sentence to engineer here]
+* **Sentence text**: “A relatively small group of donors makes up a huge chunk of the overall donation data. Forty owners account for more than $40 million — more than 85 percent of all contributions. And looking specifically at these big spenders, it’s clear where their allegiances lie: 77.7 percent of that $40 million went to Republican causes or candidates, with 18.8 percent going to Democrats.”
 * **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
 
 ```{r}
@@ -116,7 +122,7 @@ donor_count <- donos_clean %>%
 
 ### Sentence 5
 
-* **Sentence text**: [Paste in sentence to engineer here]
+* **Sentence text**: “And when we isolate just the big-ticket donations topping $100,000 from this group, a familiar picture emerges. More than 63 percent of the $47 million in the database of nearly 3,000 contributions comes from just 108 donations split among these 40 owners — and 79 percent of that money went to Republican causes.”
 * **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
 
 ```{r}
