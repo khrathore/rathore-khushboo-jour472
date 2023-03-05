@@ -42,7 +42,12 @@ political_donos <- read.csv("data/sports-political-donations.csv")
 
 donos_clean <- political_donos %>% 
   clean_names() %>% 
-  mutate(party = na_if(party, "N/A")) %>% 
+  mutate(party = na_if(party, "N/A")) %>%
+# mutate(party = case_when(
+ #   str_detect(party, "Republican") ~ "Republican",
+ #   str_detect(party, "Democrat") ~ "Democrat",
+ #   TRUE~party
+ # )) %>% 
   mutate(amount = as.numeric(gsub("[\\$,]", "",amount)))
 ```
 
@@ -82,18 +87,38 @@ count_other <- dono_count %>%
 donor_count <- donos_clean %>% 
   distinct(owner) %>% 
   nrow()
+
+count_republican
+count_democrat
+count_other
+donor_count
 ```
 
 ### Sentence 2
 
 * **Sentence text**: "But while that overall summary is interesting, a more pronounced signal begins to emerge when we look more closely at this group’s larger political donations. There are 40 owners who have donated at least $100,000 to Republican causes over the six-year period, compared to 23 owners topping $100,000 to Democrats, helping lead to these splits:"
-* **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
+* **Analysis summary**: While our analysis was similar, it was again, off by a few records. Even when "Bipartisan, but mostly" cases were replaced with "Republican" or "Democrat," we could not find 40 Republican owners and 23 Democrat owners.
 
 ```{r}
 # Put code to reverse engineer sentence here
-
 # Display results of code below this codeblock
+mass_donos <- donos_clean %>%
+  group_by(owner, party) %>%
+  summarize(
+    tot_dono = sum(amount)
+  ) %>% 
+  filter(tot_dono >= 100000)
 
+large_republican <- mass_donos %>% 
+  filter(party == "Republican") %>% 
+  nrow()
+
+large_democrat <- mass_donos %>% 
+  filter(party == "Democrat") %>% 
+  nrow()
+
+large_republican
+large_democrat
 ```
 
 ### Sentence 3
@@ -103,9 +128,9 @@ donor_count <- donos_clean %>%
 
 ```{r}
 # Put code to reverse engineer sentence here
-
 # Display results of code below this codeblock
-
+wnba_donos <- donos_clean %>% 
+  filter(str_detect(league, "WNBA"))
 ```
 
 ### Sentence 4
