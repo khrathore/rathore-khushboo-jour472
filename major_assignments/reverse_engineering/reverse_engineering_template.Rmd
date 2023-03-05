@@ -130,7 +130,18 @@ large_democrat
 # Put code to reverse engineer sentence here
 # Display results of code below this codeblock
 wnba_donos <- donos_clean %>% 
-  filter(str_detect(league, "WNBA"))
+  filter(str_detect(league, "WNBA")) %>% 
+  group_by(owner, party) %>% 
+  summarize(
+    tot_dono = sum(amount)
+  )
+
+wnba_by_party <- wnba_donos %>% 
+  group_by(party) %>% 
+  summarize(
+    donos = sum(tot_dono)
+  ) %>% 
+  mutate(percent = donos/sum(donos)*100)
 ```
 
 ### Sentence 4
