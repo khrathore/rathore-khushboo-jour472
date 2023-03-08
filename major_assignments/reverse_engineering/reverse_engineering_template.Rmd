@@ -72,6 +72,13 @@ dono_count <- donos_clean %>%
 
 dono_count$top_party = colnames(dono_count)[apply(dono_count,1,which.max)]
 
+dono_count <- dono_count %>% 
+  mutate(top_party = case_when(
+    (top_party == "Bipartisan" & Republican > Democrat)~"Republican",
+    (top_party == "Bipartisan" & Democrat > Republican)~"Democrat",
+    TRUE~top_party
+  ))
+
 count_republican <- dono_count %>% 
   filter(str_detect(top_party, "Republican")) %>% 
   nrow()
