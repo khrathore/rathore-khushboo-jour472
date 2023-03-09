@@ -43,6 +43,7 @@ political_donos <- read_csv("data/sports-political-donations.csv")
 donos_clean <- political_donos %>% 
   clean_names() %>% 
   mutate(party = na_if(party, "N/A")) %>%
+# Attempt to clean up data that is "Bipartisan, but"
 # mutate(party = case_when(
  #   str_detect(party, "Republican") ~ "Republican",
  #   str_detect(party, "Democrat") ~ "Democrat",
@@ -72,12 +73,13 @@ dono_count <- donos_clean %>%
 
 dono_count$top_party = colnames(dono_count)[apply(dono_count,1,which.max)]
 
-dono_count <- dono_count %>% 
-  mutate(top_party = case_when(
-    (top_party == "Bipartisan" & Republican > Democrat)~"Republican",
-    (top_party == "Bipartisan" & Democrat > Republican)~"Democrat",
-    TRUE~top_party
-  ))
+# Attempt to remove any Bipartisan results
+# dono_count <- dono_count %>% 
+#   mutate(top_party = case_when(
+#     (top_party == "Bipartisan" & Republican > Democrat)~"Republican",
+#     (top_party == "Bipartisan" & Democrat > Republican)~"Democrat",
+#     TRUE~top_party
+#   ))
 
 count_republican <- dono_count %>% 
   filter(str_detect(top_party, "Republican")) %>% 
@@ -148,7 +150,12 @@ wnba_by_party <- wnba_donos %>%
   summarize(
     donos = sum(tot_dono)
   ) %>% 
-  mutate(percent = donos/sum(donos)*100)
+  mutate(percent = round(donos/sum(donos)*100, 2))
+
+wnba_republican <- wnba_donos %>% 
+  filter(party == "Republican") %>% 
+  group_by(owner) %>%
+  mutate(percent = round(tot_dono/sum(tot_dono)*100,2))
 ```
 
 ### Sentence 4
