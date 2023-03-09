@@ -133,7 +133,7 @@ large_democrat
 ### Sentence 3
 
 * **Sentence text**: “Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans. And of the $1.3 million contributed by WNBA owners to Republicans, 65.5 percent comes from Kelly Loeffler, the Republican from Georgia who is co-owner of the Atlanta Dream.”
-* **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
+* **Analysis summary**: We were able to confirm the finding with accuracy. The percentages were the same when rounded, and we did not have to look at the Bipartisan, but Republican.
 
 ```{r}
 # Put code to reverse engineer sentence here
@@ -153,9 +153,16 @@ wnba_by_party <- wnba_donos %>%
   mutate(percent = round(donos/sum(donos)*100, 2))
 
 wnba_republican <- wnba_donos %>% 
-  filter(party == "Republican") %>% 
-  group_by(owner) %>%
-  mutate(percent = round(tot_dono/sum(tot_dono)*100,2))
+  filter(party == "Republican")
+
+repub_dono = sum(wnba_republican$tot_dono)
+
+wnba_republican <- wnba_republican %>% 
+  mutate(percent = round(tot_dono/repub_dono*100,2))
+
+wnba_by_party
+wnba_republican
+
 ```
 
 ### Sentence 4
