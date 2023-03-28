@@ -219,7 +219,7 @@ The Census Bureau has Zip Code Tabulation Areas - they are mostly identical to w
 
 **Task** Let's get ZCTA household income data from the ACS using tidycensus for each zip code in `md_high_schools`. Run the following codeblock to retrieve household income data from 2019 - the latest year for which we have it for all Maryland ZCTAs - first, then join them to `md_high_schools` using the GEOID column. We'll also create min and max values and drop any rows where we don't have income estimates. What's one question we could ask of this data now that we have enrollment percentages and household income for the high school's zip code? What might make the answer harder to interpret?
 **Answer**
-Do areas with higher household income usually have more college-going students? Answers could get harder because some people go into the workforce or trade school, and many took gap years because of COVID. Some may have also gone to work.
+Do areas with higher household income usually have more college-going students? Answers could get harder because some people go into the workforce or trade school, and many took gap years because of COVID. Some may have also gone to work. Also, the zip codes aren't necessarily where the students live. For example, I went to high school in 20901 but lived in 20878.
 ```{r}
 md_zipcodes <- get_acs(geography="zcta", variables = "B19013_001", state='MD', year=2019)
 md_high_schools_with_acs <- md_high_schools %>% left_join(md_zipcodes, by=c('zip'='GEOID'))
