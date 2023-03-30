@@ -81,7 +81,7 @@ me_age_50 <- me_med_age %>%
 Which zip code has the highest rate of calls? Which has the lowest?
 
 **A3** 
-20861 has the highest, 20707 has the lowest.
+20877 has the highest, 20707 has the lowest.
 ```{r}
 moco_calls <- read_csv("data/montgomery_2022_overdoses.csv")
 
@@ -92,12 +92,12 @@ moco_by_zip <- moco_calls %>%
   rename(count_calls = n) %>% 
   mutate(zip = as.character(zip))
 
-md_under_18 <- get_acs(geography = "zcta", variables = c(under_18_pop = "B09001_001"), state = "MD", year = 2019) %>% 
+md_over_18 <- get_acs(geography = "zcta", variables = c(under_18_pop = "B09021_001"), state = "MD", year = 2019) %>% 
   inner_join(moco_by_zip, by = c("GEOID" = "zip")) %>% 
-  rename(c(under_18_pop = estimate, zip_code = GEOID)) %>% 
+  rename(c(over_18_pop = estimate, zip_code = GEOID)) %>% 
   select(-NAME, -variable) %>% 
-  select(zip_code, count_calls, under_18_pop, moe) %>% 
-  mutate(calls_per_1000 = count_calls/under_18_pop*1000) %>% 
+  select(zip_code, count_calls, over_18_pop, moe) %>% 
+  mutate(calls_per_1000 = count_calls/over_18_pop*1000) %>% 
   arrange(desc(calls_per_1000))
   
 ```
@@ -105,18 +105,19 @@ md_under_18 <- get_acs(geography = "zcta", variables = c(under_18_pop = "B09001_
 **Q4** Using [CensusReporter.org](https://censusreporter.org/), examine the zip codes with the highest and lowest rates and compare and contrast their demographic profiles. Is there a story here?
 
 **A4**
-While I can't definitively say there is a story, there are significant differences in racial distribution, housing density, and income. 20707 (Laurel, MD) is majority black and hispanic, and has a median household income under $100K. It also has 8.4% of it's population under the poverty line. In contrast, 20861 (Ashton, MD) is majority white, had a median income about 150K and only has .8% of the population under the poverty line. 
+While I can't definitively say there is a story, there are significant differences in poverty and income. 20707 (Laurel, MD) is largely black , and has a median household income just under 100K. It also has 8.4% of it's population under the poverty line. In contrast, 20877 (Gaithersburg) has a large hispanic population and a median household income just above 75K. The poverty rate is also higher, at 15.4% of people. There are also more people per household in 20877.
 
-It's surprising that the per capita rate in 20861 is so high compared to the rate in Laurel. And the fact that Laurel has so few calls with the statistics of their population.
+I think the biggest difference between the two is population density. There could be a story in how housing impacts drug abuse, but I would need to look more.
+
 
 **Q5** Go back to your joined dataframe from Q3 and add two more columns representing the minimum and maximum populations based on the estimate and margin of error, then calculate per capita rates for each. Do you get the same two zip codes for the highest and lowest as you did before? Does that give you more or less confidence in your answers to Q3?
 
 **A5** 
-When gauged on the low end of the population, the highest is still in 20861, and the lowest is still in 20707. When gauged on the high end of the population, the highest is 20852 and the lowest is still 20707. I remain confident in 20707 having the lowest rate, and since 20861 is still so high, my confidence is not totally shaken. However, I would want to find more accurate estimates before publishing this.
+When gauged on the low end of the population, the highest is still in 20877, and the lowest is still in 20707. When gauged on the high end of the population, the highest is still 20877 and the lowest is still 20707. This gives me more confidence in my answers for Question 3.
 ```{r}
-md_moe <- md_under_18 %>% 
-  mutate(low_pop = under_18_pop - moe) %>% 
-  mutate(high_pop = under_18_pop + moe) %>% 
+md_moe <- md_over_18 %>% 
+  mutate(low_pop = over_18_pop - moe) %>% 
+  mutate(high_pop = over_18_pop + moe) %>% 
   mutate(low_pop_percap = count_calls/low_pop*1000) %>% 
   mutate(high_pop_percap = count_calls/high_pop*1000)
 ```
