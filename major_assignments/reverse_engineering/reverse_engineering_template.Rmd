@@ -1,7 +1,7 @@
 ---
 title: "Reverse Engineering Project"
 author: "Caroline Koutsos, Khushboo Rathore"
-date: "04 March 2023"
+date: "31 March 2023"
   html_document:
     theme: cerulean
     highlight: pygments
@@ -35,15 +35,16 @@ library(dplyr)
 In this section, describe the source of the data, write a basic data dictionary for data you are working with, and discuss any caveats or issues you discovered working with this data. 
 
 ```{r}
-# Load required data
-# Path to data should be loaded from folder "data" i.e. read_csv("data/name_of_data.csv")
-# Clean required data and prepare for analysis if needed. 
+### LOAD AND CLEAN DATA ###
+
+
 political_donos <- read_csv("data/sports-political-donations.csv")
 
+# Clean the data to create NA values and remove punctuation
 donos_clean <- political_donos %>% 
   clean_names() %>% 
   mutate(party = na_if(party, "N/A")) %>%
-# Attempt to clean up data that is "Bipartisan, but"
+# Attempt to clean up data that is "Bipartisan, but" by changing it to republican/democrat instead.
 # mutate(party = case_when(
  #   str_detect(party, "Republican") ~ "Republican",
  #   str_detect(party, "Democrat") ~ "Democrat",
@@ -58,22 +59,29 @@ In this notebook, we are reverse engineering five sentences from the story.
 ### Sentence 1
 
 * **Sentence text**: “Of the 160 owners and commissioners in ESPN’s database, 74 contributed a majority of their publicly searchable funds to Republican campaigns, with 48 donating a majority to Democrats and the rest sending most of their money to causes that aren’t fully aligned with either party.”
+
 * **Analysis summary**: The analysis we completed resulted in slightly different numbers. We found 158 donors, with 50 donating majority Democrat, 71 donating majority Republican, and 37 donating to some other party or interest. We think the author may have added bipartisan (but leaning) money to the category it leaned towards. Additionally, the numbers are not so far as to cause huge concern but it is kind of odd.
 
 ```{r}
-# Put code to reverse engineer sentence here
-# Display results of code below this codeblock
+
+### REPRODUCE THE FIRST SENTENCE ###
+
+# Clean and summarize the data by party donations for each owner
 dono_count <- donos_clean %>%
   group_by(owner, party) %>%
   summarize(
     tot_dono = sum(amount)
   ) %>% 
   pivot_wider(names_from = party, values_from = tot_dono) %>% 
-  replace(is.na(.), 0)
+  replace(is.na(.), 0) %>% 
+  clean_names()
 
+# Create a column that displays which party each owner donated the most to
 dono_count$top_party = colnames(dono_count)[apply(dono_count,1,which.max)]
 
-# Attempt to remove any Bipartisan results
+# Attempt to remove any Bipartisan results by changing them to their majority party instead. 
+# This code didn't help reproduce the results that the author found.
+
 # dono_count <- dono_count %>% 
 #   mutate(top_party = case_when(
 #     (top_party == "Bipartisan" & Republican > Democrat)~"Republican",
@@ -81,22 +89,26 @@ dono_count$top_party = colnames(dono_count)[apply(dono_count,1,which.max)]
 #     TRUE~top_party
 #   ))
 
+## Count the number of owners who had majority donations to each party ##
+
 count_republican <- dono_count %>% 
-  filter(str_detect(top_party, "Republican")) %>% 
+  filter(str_detect(top_party, "republican")) %>% 
   nrow()
 
 count_democrat <- dono_count %>% 
-  filter(str_detect(top_party, "Democrat")) %>% 
+  filter(str_detect(top_party, "democrat")) %>% 
   nrow()
 
 count_other <- dono_count %>% 
-  filter(!(top_party == "Democrat" | top_party == "Republican")) %>% 
+  filter(!(top_party == "democrat" | top_party == "republican")) %>% 
   nrow()
 
+# Count the total number of owners
 donor_count <- donos_clean %>% 
   distinct(owner) %>% 
   nrow()
 
+# Display results
 count_republican
 count_democrat
 count_other
@@ -106,17 +118,22 @@ donor_count
 ### Sentence 2
 
 * **Sentence text**: "But while that overall summary is interesting, a more pronounced signal begins to emerge when we look more closely at this group’s larger political donations. There are 40 owners who have donated at least $100,000 to Republican causes over the six-year period, compared to 23 owners topping $100,000 to Democrats, helping lead to these splits:"
+
 * **Analysis summary**: While our analysis was similar, it was again, off by a few records. Even when "Bipartisan, but mostly" cases were replaced with "Republican" or "Democrat," we could not find 40 Republican owners and 23 Democrat owners.
 
 ```{r}
-# Put code to reverse engineer sentence here
-# Display results of code below this codeblock
+
+### REPRODUCE SENTENCE TWO ###
+
+# Count owners who have donated more than $100,000 to either party
 mass_donos <- donos_clean %>%
   group_by(owner, party) %>%
   summarize(
     tot_dono = sum(amount)
   ) %>% 
   filter(tot_dono >= 100000)
+
+## Count the number of large donors for each party ##
 
 large_republican <- mass_donos %>% 
   filter(party == "Republican") %>% 
@@ -126,6 +143,7 @@ large_democrat <- mass_donos %>%
   filter(party == "Democrat") %>% 
   nrow()
 
+# Display results
 large_republican
 large_democrat
 ```
@@ -133,11 +151,14 @@ large_democrat
 ### Sentence 3
 
 * **Sentence text**: “Overall, 51.7 percent of all contributions by WNBA owners went to Democrats, with 42.3 percent going to Republicans. And of the $1.3 million contributed by WNBA owners to Republicans, 65.5 percent comes from Kelly Loeffler, the Republican from Georgia who is co-owner of the Atlanta Dream.”
+
 * **Analysis summary**: We were able to confirm the finding with accuracy. The percentages were the same when rounded, and we did not have to look at the Bipartisan, but Republican.
 
 ```{r}
-# Put code to reverse engineer sentence here
-# Display results of code below this codeblock
+
+### REPRODUCE SENTENCE THREE ###
+
+# Filter owners to WNBA 
 wnba_donos <- donos_clean %>% 
   filter(str_detect(league, "WNBA")) %>% 
   group_by(owner, party) %>% 
@@ -145,12 +166,15 @@ wnba_donos <- donos_clean %>%
     tot_dono = sum(amount)
   )
 
+# Look at what parties WNBA owners are donating to and calculate the percentages by party
 wnba_by_party <- wnba_donos %>% 
   group_by(party) %>% 
   summarize(
     donos = sum(tot_dono)
   ) %>% 
   mutate(percent = round(donos/sum(donos)*100, 2))
+
+## Find republican WNBA donations ##
 
 wnba_republican <- wnba_donos %>% 
   filter(party == "Republican")
@@ -160,6 +184,7 @@ repub_dono = sum(wnba_republican$tot_dono)
 wnba_republican <- wnba_republican %>% 
   mutate(percent = round(tot_dono/repub_dono*100,2))
 
+# Display results
 wnba_by_party
 wnba_republican
 
@@ -168,25 +193,84 @@ wnba_republican
 ### Sentence 4
 
 * **Sentence text**: “A relatively small group of donors makes up a huge chunk of the overall donation data. Forty owners account for more than $40 million — more than 85 percent of all contributions. And looking specifically at these big spenders, it’s clear where their allegiances lie: 77.7 percent of that $40 million went to Republican causes or candidates, with 18.8 percent going to Democrats.”
-* **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
+
+* **Analysis summary**: We were able to reproduce the results of the first part of this sentence, finding that the top forty owners account for over $41 million of the donations, which was also about 89% of all the donations. However, we were unable to confirm the findings on which parties these donations went to. Even when adding in the bipartisan, but Republican and bipartisan, but Democrat donation, the results we found were about 20% Democrat and about 75% Republican. Our working theory, after looking at so many of these, is that he went through and encoded each Bipartisan or no party donation to it's closest party.
 
 ```{r}
-# Put code to reverse engineer sentence here
 
-# Display results of code below this codeblock
+### REPRODUCE SENTENCE FOUR ###
 
+# Find the top 40 overall donors
+donos_total <- donos_clean %>% 
+  group_by(owner) %>% 
+  summarize(
+    tot_dono = sum(amount)
+  ) %>% 
+  arrange(desc(tot_dono)) %>% 
+  head(40)
+
+# Sum the top 40 donors contributions and find the percentage of overall donations.
+top_sum = sum(donos_total$tot_dono)
+sum_all = sum(donos_clean$amount)
+top_percent = top_sum/sum_all*100
+
+# Join with the data frame that separates donations by party
+top_dono_dist <- donos_total %>% 
+  left_join(dono_count, by = c("owner"))
+
+## Finding the sum and percentages of democrat and republican donations in the top 40 owners. Commented out code shows when we attempted to get better results by adding in the bipartisan but leaning results, which was unsuccessful.
+
+sum_dem = sum(top_dono_dist$democrat) # + sum(top_dono_dist$bipartisan_but_mostly_democratic)
+percent_dem = sum_dem/top_sum*100
+sum_rep = sum(top_dono_dist$republican) # + sum(top_dono_dist$bipartisan_but_mostly_republican)
+percent_rep = sum_rep/top_sum*100
+  
+  
+# Display results
+top_sum
+top_percent
+percent_dem
+percent_rep
 ```
 
 ### Sentence 5
 
 * **Sentence text**: “And when we isolate just the big-ticket donations topping $100,000 from this group, a familiar picture emerges. More than 63 percent of the $47 million in the database of nearly 3,000 contributions comes from just 108 donations split among these 40 owners — and 79 percent of that money went to Republican causes.”
-* **Analysis summary**: [Write up two to three sentences describing the results of your analysis.  Were you able to confirm the finding? If not, why not?]
+* **Analysis summary**: We found that about 62% of the donations came from 104 donations split among the top donors. This was close to, but not exactly what the author found. It could be because there were multiple donations made in small amounts, but when we tried to account for this, we were still unable to recreate the results. We did, however, agree that 79% of these donations went to Republican causes. 
 
 ```{r}
-# Put code to reverse engineer sentence here
 
-# Display results of code below this codeblock
+### REPRODUCE SENTENCE FIVE ###
 
+# Find just the donations from the top 40 donors that were over $100,000
+
+top_filter <- donos_clean %>% 
+  inner_join(donos_total, by = "owner") %>%
+  # Attempted to group donations by those made by one owner in one year to one recipient, but the results were the same.
+  # group_by(owner, election_year, recipient) %>% 
+  # summarize(
+  #   dono_pool = sum(amount)
+  # ) %>% 
+  # filter(dono_pool >= 100000)
+  filter(amount >= 100000)
+
+## Count and find the donations made by these owners and find percentages
+big_donos_sum = sum(top_filter$amount)
+big_percent = big_donos_sum/sum_all*100
+big_count = nrow(top_filter)
+
+# Find the republican donations
+top_republican <- top_filter %>% 
+  filter(party == "Republican")
+
+## Find the percent of the donations made by top donors that are over $100,000 and for Republican causes.
+sum_republican_top = sum(top_republican$amount)
+percent_rep_top = sum_republican_top/big_donos_sum * 100
+
+# Display results
+big_percent
+big_count
+percent_rep_top
 ```
 
 -30-
