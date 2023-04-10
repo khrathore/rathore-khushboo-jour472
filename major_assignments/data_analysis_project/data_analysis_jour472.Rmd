@@ -41,9 +41,9 @@ wsoccer_playerstat_2022 <- read_csv("data/ncaa_womens_soccer_playerstats_2022.cs
 
 
 # Possible Qs:
-  # Home vs Away game performances - Down to the individual athlete?
+  # Home vs Away game performances - Down to the individual athlete?, Look at shutouts
   # Play time based on statistics/performance or year?
-  # Teams and players with cards, home or away games?
+  # !!Teams and players with cards, home or away games?!!
   # Change in performance for players over time
 ```
 
