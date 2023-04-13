@@ -112,6 +112,8 @@ I don't feel super comfortable making a story from this. I would want to look at
 https://www.datawrapper.de/_/j4U24/
 
 When looking at per capita numbers, 20901 actually moves significantly lower, which is very relevant.
+
+https://www.datawrapper.de/_/0M5lv/
 ```{r}
 moco_911 <- read_csv("data/montgomery_2022_overdoses.csv") %>% 
   clean_names()
@@ -135,5 +137,7 @@ moco_zip_capita <- moco_by_zip %>%
   select(zip, num_calls, percent_calls, estimate) %>% 
   rename(est_population = estimate) %>% 
   mutate(call_per_1000 = num_calls/est_population*1000)
+
+write_csv(moco_zip_capita, "data/capita_zip.csv")
 
 ```
