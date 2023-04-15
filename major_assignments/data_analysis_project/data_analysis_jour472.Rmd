@@ -39,7 +39,83 @@ wsoccer_playerstat_2020 <- read_csv("data/ncaa_womens_soccer_playerstats_2020.cs
 wsoccer_playerstat_2021 <- read_csv("data/ncaa_womens_soccer_playerstats_2021.csv", guess_max = 5000)
 wsoccer_playerstat_2022 <- read_csv("data/ncaa_womens_soccer_playerstats_2022.csv", guess_max = 5000)
 
+wsoccer_teams_2020 <- read_csv("url_csvs/NCAA Women's Soccer - 2020.csv") %>% 
+  clean_names()
+wsoccer_teams_2021 <- read_csv("url_csvs/NCAA Women's Soccer - 2021.csv") %>% 
+  clean_names()
+wsoccer_teams_2022 <- read_csv("url_csvs/NCAA Women's Soccer - 2022.csv") %>% 
+  clean_names()
+
+col_names <- colnames(wsoccer_matchstat_2020)
+view(col_names)
+# Data Dictionary: https://docs.google.com/spreadsheets/d/1lnEauTJ62LcCfWJdwIHUitD6Hai_-1YCDVsEbwiTSG8/edit#gid=0
+
+match_20 <- wsoccer_matchstat_2020 %>% 
+  select(-points, -na.x, -na.y, -defensive_points)
+
+match_21 <- wsoccer_matchstat_2021 %>% 
+  select(-gwg, -defensive_gwg)
+
+match_22 <- wsoccer_matchstat_2022 %>% 
+  select(-gwg, -defensive_gwg)
+
+match_all <- match_20 %>% 
+  rbind(match_21, match_22)
+
+teams_21 <- wsoccer_teams_2021 %>% 
+  select(-so_g, -gwg, -games)
+
+teams_22 <- wsoccer_teams_2022 %>% 
+  select(-so_g, -gwg, -games)
+
+cols_20 <- names(wsoccer_teams_2020)
+view(cols_20)
+
+teams_20 <- wsoccer_teams_2020 %>% 
+  select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att)
+
+all_teams <- teams_20 %>% 
+  rbind(teams_21, teams_22) %>% 
+```
+
+# Questions
+1. General comparison of performance at Home vs Away games:
+  Do teams get more shutouts at Home games?
+  Do players get carded more at Away games?
+  Does being at a new field impact wins and losses aka W/L ratios?
+  
+``` {r}
+matches_compares <- match_all %>% 
+  group_by(team, home_away) %>% 
+  summarize(
+    shutouts = sum(shutouts),
+    all_red = sum(red_cards),
+    all_yellow = sum(yellow_cards),
+    foul_mean = mean(fouls),
+    foul_median = median(fouls),
+    score_mean = mean(team_score),
+    score_med = median(team_score),
+    goal_rate = sum(goals)/sum(sh_att),
+  )
+```
+2. Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season (group player performances across seasons and divide by # seasons played) ?
+3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences 
+4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the offense or defense performance impact match result more?
+5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
+
+```{r}
+team_mascot <- unique(match_all$team)
+team_list <- unique(all_teams$institution)
+
 
 ```
+
+
+## Caveats and Limitations:
+- Some statistics in 2020 are not present in 2021 and 2022, and vice versa
+- We do not have data about the teams as a whole (i.e. what division they are in, what conference they are in)
+- 2020 had only some conferences playing matches since it was during COVID, also fewer players so some may have redshirted, opted-out, etc.
+- Matches are not classified at playoff games or normal games, so we would need to check the dates.
+- No game count or shots on goal data for 2020 players, not sure if this was a scrape problem or something else.
 
 
