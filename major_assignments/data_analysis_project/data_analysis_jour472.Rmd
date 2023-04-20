@@ -74,8 +74,20 @@ view(cols_20)
 teams_20 <- wsoccer_teams_2020 %>% 
   select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att)
 
-all_teams <- teams_20 %>% 
-  rbind(teams_21, teams_22) %>% 
+players_20 <- wsoccer_playerstat_2020 %>% 
+  select(season, team, jersey, full_name, roster_name, first_name, last_name, yr, pos, gp, gs, goals, assists, points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, gaa, saves, sv_pct, combined_sho, shutouts, g_wins, g_loss, d_saves, corners, pk, pk_att, gwg)
+
+players_21 <- wsoccer_playerstat_2021 %>% 
+  select(-so_g, -games)
+
+players_22 <- wsoccer_playerstat_2022 %>% 
+  select(-so_g, -games)
+
+players_all <- players_20 %>% 
+  rbind(players_21, players_22)
+
+# all_teams <- teams_20 %>% 
+ # rbind(teams_21, teams_22) %>% 
 ```
 
 # Questions
@@ -85,9 +97,24 @@ all_teams <- teams_20 %>%
   Does being at a new field impact wins and losses aka W/L ratios?
   
 ``` {r}
+matches_wld <- match_all %>% 
+  group_by(team, home_away, outcome) %>% 
+  count() %>% 
+  pivot_wider(names_from = outcome, values_from = n) %>% 
+  replace(is.na(.), 0) %>% 
+  mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
+  mutate(win_percent = Win/(Win+Loss+Draw)*100)
+
 matches_compares <- match_all %>% 
+  mutate(outcome = case_when(
+    str_detect(outcome,"Loss")~0,
+    str_detect(outcome,"Win")~1,
+    str_detect(outcome,"Draw")~.5,
+    TRUE~NA
+  )) %>% 
   group_by(team, home_away) %>% 
   summarize(
+    w_l_d = mean(outcome),
     shutouts = sum(shutouts),
     all_red = sum(red_cards),
     all_yellow = sum(yellow_cards),
@@ -96,9 +123,35 @@ matches_compares <- match_all %>%
     score_mean = mean(team_score),
     score_med = median(team_score),
     goal_rate = sum(goals)/sum(sh_att),
-  )
+  ) %>% 
+  left_join(matches_wld, by = c("team", "home_away"))
+
+
 ```
 2. Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season (group player performances across seasons and divide by # seasons played) ?
+
+```{r}
+player_filter <- players_all %>% 
+  filter(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23) %>% 
+  select(-full_name, -points, -red_cards:-corners)
+
+player_anti <- players_all %>% 
+  filter(!(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23)) %>% 
+  select(-full_name, -points, -red_cards:-corners)
+
+jersey_players <- player_filter %>% 
+  group_by(jersey) %>%
+  replace(is.na(.), 0)
+  summarize(
+    mean_gp = mean(gp),
+    mean_goals = mean(goals),
+    median_goals = median(goals),
+    goal_shtrat = sum(goals)/sum(sh_att)*100,
+    mean_fouls = mean(fouls),
+    pk_success = sum(pk)/sum(pk_att)*100
+  )
+```
+
 3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences 
 4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the offense or defense performance impact match result more?
 5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
