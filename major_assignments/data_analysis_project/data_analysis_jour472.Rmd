@@ -24,6 +24,7 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(dplyr)
+library(ggplot2)
 ```
 
 ## Load and Cleaning Data
@@ -140,16 +141,45 @@ player_anti <- players_all %>%
   select(-full_name, -points, -red_cards:-corners)
 
 jersey_players <- player_filter %>% 
+  # Asked Chat GPT: "How do I replace the NA values in every numeric column in a R dataframe with 0?"
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
   group_by(jersey) %>%
-  replace(is.na(.), 0)
   summarize(
     mean_gp = mean(gp),
     mean_goals = mean(goals),
     median_goals = median(goals),
     goal_shtrat = sum(goals)/sum(sh_att)*100,
     mean_fouls = mean(fouls),
-    pk_success = sum(pk)/sum(pk_att)*100
+    pk_success = sum(pk)/sum(pk_att)*100,
+    gwg = mean(gwg)
   )
+
+other_players <- player_anti %>% 
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
+  group_by(jersey) %>%
+  summarize(
+    mean_gp = mean(gp),
+    mean_goals = mean(goals),
+    median_goals = median(goals),
+    goal_shtrat = sum(goals)/sum(sh_att)*100,
+    mean_fouls = mean(fouls),
+    pk_success = sum(pk)/sum(pk_att)*100,
+    gwg = mean(gwg)
+  )
+
+player_by_jersey <- jersey_players %>% 
+  rbind(other_players) %>% 
+  ggplot(aes(x = mean_goals, y = goal_shtrat,label = jersey)) +
+  geom_point(size = 2, shape = 1, color = "black") + 
+  labs(
+    title = "Higher Jersey Numbers Are More of a Threat Near Goal",
+    x = "Mean Goals",
+    y = "Percent of Shots Made"
+  ) +
+  geom_text(check_overlap = TRUE)
+
+
+player_by_jersey
 ```
 
 3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences 
