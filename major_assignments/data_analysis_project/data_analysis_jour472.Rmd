@@ -48,17 +48,20 @@ wsoccer_teams_2022 <- read_csv("url_csvs/NCAA Women's Soccer - 2022.csv") %>%
   clean_names()
 
 col_names <- colnames(wsoccer_matchstat_2020)
-view(col_names)
 # Data Dictionary: https://docs.google.com/spreadsheets/d/1lnEauTJ62LcCfWJdwIHUitD6Hai_-1YCDVsEbwiTSG8/edit#gid=0
 
 match_20 <- wsoccer_matchstat_2020 %>% 
+  mutate(season = 2020) %>% 
   select(-points, -na.x, -na.y, -defensive_points)
 
 match_21 <- wsoccer_matchstat_2021 %>% 
+  mutate(season = 2021) %>% 
   select(-gwg, -defensive_gwg)
 
 match_22 <- wsoccer_matchstat_2022 %>% 
+  mutate(season = 2022) %>% 
   select(-gwg, -defensive_gwg)
+  
 
 match_all <- match_20 %>% 
   rbind(match_21, match_22)
@@ -70,7 +73,6 @@ teams_22 <- wsoccer_teams_2022 %>%
   select(-so_g, -gwg, -games)
 
 cols_20 <- names(wsoccer_teams_2020)
-view(cols_20)
 
 teams_20 <- wsoccer_teams_2020 %>% 
   select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att)
@@ -87,8 +89,8 @@ players_22 <- wsoccer_playerstat_2022 %>%
 players_all <- players_20 %>% 
   rbind(players_21, players_22)
 
-# all_teams <- teams_20 %>% 
- # rbind(teams_21, teams_22) %>% 
+all_teams <- teams_20 %>% 
+ rbind(teams_21, teams_22)
 ```
 
 # Questions
@@ -182,7 +184,88 @@ player_by_jersey <- jersey_players %>%
 player_by_jersey
 ```
 
-3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences 
+3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences
+
+```{r}
+# Need: number games played per season, number of games each player started during that season over the number of games the team played. Conference information, year information.
+
+games_per_team <- match_all %>% 
+  group_by(season, team) %>% 
+  count()
+
+team_unique <- all_teams %>%
+  group_by(institution, conference) %>% 
+  summarize(
+    avg_goals = round(mean(goals),2),
+    avg_shutouts = round(mean(shutouts),2),
+    avg_fouls = round(mean(fouls),2)
+  ) %>% 
+  distinct(institution, .keep_all = TRUE)
+
+regex_unis <- regex(paste(unique(all_teams$institution), collapse = "|"))
+
+player_team <- players_all %>% 
+  mutate(institution = str_extract(team, regex_unis)) %>% 
+  mutate(institution = case_when(
+    str_detect(team, "LMU \\(CA\\)")~"LMU (CA)",
+    str_detect(team, "Miami \\(FL\\)")~"Miami (FL)",
+    str_detect(team, "Miami \\(OH\\)")~"Miami (OH)",
+    str_detect(team, "Queens \\(NC\\)")~"Queens (NC)",
+    str_detect(team, "Saint Francis \\(PA\\)")~"Saint Francis (PA)",
+    str_detect(team, "Saint Mary's \\(CA\\)")~"Saint Mary's (CA)",
+    str_detect(team, "St. John's \\(NY\\)")~"St. John's (NY)",
+    str_detect(team, "St. Thomas \\(MN\\)")~"St. Thomas (MN)",
+    str_detect(team, "FDU")~"Fairleigh Dickinson",
+    TRUE~institution
+  )) %>% 
+  select(season:gs, institution, -gp, -pos, -full_name) %>%
+  left_join(games_per_team, by = c("season", "team")) %>% 
+  left_join(team_unique, by = "institution") %>% 
+  rename(season_games = n)
+
+
+player_by_year <- player_team %>% 
+  group_by(roster_name, institution, yr, conference, season) %>% 
+  summarize(
+    percent_start = round(gs/season_games*100,2)
+  ) %>% 
+  mutate(percent_start = case_when(
+    is.na(percent_start)~0,
+    TRUE~percent_start
+  ))
+  
+institution_year <- player_team %>%
+  group_by(roster_name, institution, yr, conference, season) %>% 
+  summarize(
+    percent_start = round(gs/season_games*100,2)
+  ) %>% 
+  mutate(percent_start = case_when(
+    is.na(percent_start)~0,
+    TRUE~percent_start
+  )) %>% 
+  group_by(institution, conference, yr) %>% 
+  summarize(
+    starter = mean(percent_start)
+  ) %>% 
+  pivot_wider(names_from = "yr", values_from = "starter") %>% 
+  select(institution, conference, Fr, So, Jr, Sr) %>% 
+  left_join(team_unique, by = c("institution", "conference"))
+
+
+conference_stats <- institution_year %>% 
+  group_by(conference) %>% 
+  summarize(
+    fr = round(mean(Fr),2),
+    so = round(mean(So),2),
+    jr = round(mean(Jr),2),
+    sr = round(mean(Sr),2),
+    mean_goals = round(mean(avg_goals),2),
+    mean_sos = round(mean(avg_shutouts),2),
+    mean_foul = round(mean(avg_fouls),2)
+  )
+
+```
+
 4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the offense or defense performance impact match result more?
 5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
 
