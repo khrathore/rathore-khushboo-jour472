@@ -270,11 +270,52 @@ conference_stats <- institution_year %>%
 5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
 
 ```{r}
-team_mascot <- unique(match_all$team)
-team_list <- unique(all_teams$institution)
+team_unique <- all_teams %>%
+  group_by(institution, conference) %>% 
+  summarize(
+    avg_goals = round(mean(goals),2),
+    avg_shutouts = round(mean(shutouts),2),
+    avg_fouls = round(mean(fouls),2)
+  ) %>% 
+  distinct(institution, .keep_all = TRUE)
+
+regex_unis <- regex(paste(unique(all_teams$institution), collapse = "|"))
+
+mascot_list <- match_all %>% 
+  mutate(institution = str_extract(team, regex_unis)) %>% 
+  ## Asked CHATGPT: "How do I extract everything after a certain pattern in R?"
+  mutate(mascot = str_squish(sub(regex_unis, "", team))) %>% 
+  mutate(institution = case_when(
+    str_detect(team, "LMU \\(CA\\)")~"LMU (CA)",
+    str_detect(team, "Miami \\(FL\\)")~"Miami (FL)",
+    str_detect(team, "Miami \\(OH\\)")~"Miami (OH)",
+    str_detect(team, "Queens \\(NC\\)")~"Queens (NC)",
+    str_detect(team, "Saint Francis \\(PA\\)")~"Saint Francis (PA)",
+    str_detect(team, "Saint Mary's \\(CA\\)")~"Saint Mary's (CA)",
+    str_detect(team, "St. John's \\(NY\\)")~"St. John's (NY)",
+    str_detect(team, "St. Thomas \\(MN\\)")~"St. Thomas (MN)",
+    str_detect(team, "FDU")~"Fairleigh Dickinson",
+    TRUE~institution
+  )) %>% 
+  group_by(team, mascot, institution) %>% 
+  summarize(
+    avg_score = round(mean(team_score),2),
+    avg_sh_att = round(mean(sh_att),2),
+    avg_so_g = round(mean(so_g),2),
+  ) %>% 
+  inner_join(team_unique, by = "institution") %>% 
+  mutate(mas_category = case_when(
+    
+  ))
 
 
 ```
+eagles, (runnin') bulldogs, wildcats, falcons, zips, (lady) hornets, (lady) tigers, panthers, bears, (lady) lions, razorbacks, (red) wolves, cougars, cardinals, (lady, golden) bears, bruins, bearcats, broncos, terriers, bison, bulls, roadrunners, mustangs, lancers, camels, mocs, chanticleers, buffaloes, rams, bluejays, (blue) hens, hornets, stags, owls, gators, hoya*, lopes (antelopes), hawks, as animal
+(sun, blue) devils, titans, (golden) griffins, (blue) demons, demon deacons, dragons, phoenix as mythical creature
+governors, (lady) braves, mountaineers, (black, FDU) knights, matadors, chippewas, buccaneers, 49ers, vikings, raiders, flyers, pioneers, dukes*, (lady) pirates, islanders, colonels, seminoles, paladins, colonials,  as people
+crimson tide as element
+
+miscellaneous: sugar bears, big red, big green, purple aces, crimson,  
 
 
 ## Caveats and Limitations:
