@@ -1,0 +1,122 @@
+---
+title: "lab_12"
+author: "Khushboo Rathore"
+date: "2023-05-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+* tidytext and our usual libraries
+
+## Load libraries and establish settings
+
+**Task** Create a codeblock and load appropriate packages and settings for this lab.
+
+```{r}
+library(tidytext)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(rvest)
+```
+
+## Questions
+
+**Q1.** You've been assigned to report a story about the leading reasons that Maryland attorneys get sanctioned by the state for misconduct. The state [publishes lists of sanctions](https://www.courts.state.md.us/attygrievance/sanctions) that contain a short text description about the situation. Load the CSV file in the data folder containing records from fiscal year 2011 onwards. Make a list of unique words from the text column, then following the example in the pre_lab, remove common "stop words" from that list and create a list of the top 10 words containing the percentage of occurrences each word represents. What's the leading word in that answer and, broadly, what do you think the top 10 words describe?
+
+**A1.** 
+The leading word in the list of sanctions is "failing." It seems like all the words in the list describe the actions, or lack of actions, taken by an attorney that led to them being sanctioned. This could include using funds for inappropriate reasons, or doing things without consent of their clients.
+```{r}
+md_att_sanctions <- read_csv("data/md_attorney_sanctions.csv")
+
+unique_words <- md_att_sanctions %>% 
+  select(text) %>% 
+  unnest_tokens(word, text)
+
+data("stop_words")
+
+unique_no_stop <- unique_words %>% 
+  anti_join(stop_words) %>% 
+  group_by(word) %>%
+  tally(sort=TRUE) %>%
+  mutate(percent = (n/sum(n))*100) %>%
+  top_n(50)
+
+top_ten <- unique_no_stop %>% 
+  head(10)
+```
+
+**Q2.** Let's move beyond single words to phrases. Make a list of the top 10 three-word phrases, called trigrams, based on the example from the pre_lab (you'll need to modify the example code to do this). What's the top trigram and how often does it appear? What does that phrase mean in legal terms?
+
+**A2.** 
+The top trigram is "attorney trust account", which appears 343 times. These are, according to https://www.clio.com/resources/legal-accounting/law-firm-trust-accounting, accounts that law firms will use to hold client funds that are being used to pay attorneys, legal fees, the attorney retainer, and other legal matters for their case.
+
+```{r}
+trigrams <- md_att_sanctions %>% 
+  unnest_tokens(trigram, text, token = "ngrams", n = 3) %>% 
+  separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  mutate(trigram = paste(word1, word2, word3, sep=" ")) %>%
+  group_by(trigram) %>%
+  tally(sort=TRUE) %>%
+  mutate(percent = (n/sum(n))*100) %>%
+  head(10)
+```
+
+**Q3.** Let's drop back down to more traditional text analysis - take the top trigram from Q2 and write code to see how many times it occurs in the text column in each fiscal year. What do you think the answer produced by your code suggests? What else could you do to try and clarify the most important reasons attorneys get sanctioned?
+
+**A3.** 
+The number of sanctions that were, in part, caused by attorney trust account infractions shot up in 2017. Keep in mind, this counts the number of sanctions that include this infraction, and does not count multiple times if the attorney trust account is mentioned multiple times in the same text cell. I think that this result could indicate a shift in the systems put in place. It also seems like in 2017, a new person took over the Office of Bar Counsel in Maryland. She was, according to a story by The Daily Record, "tough but fair" and helped standardize practices. https://thedailyrecord.com/2023/03/21/tough-but-fair-lawless-steps-down-as-md-bar-counsel-after-nearly-6-years/.
+
+I think we could also remove any of the references to trust or account, adding those to the stop words, to see other reasons for these sanctions. Removing these possibilities shows that one of the other reasons that people often get sanctioned is for violating their client's trust and not getting their consent before taking action. To clarify some of these, we could also look at some of the specific records that are included in the list of sanctions. Additionally, we could use a longer n-gram.
+
+The reality, after looking at some of the alternatives, is that many of these sanctions are about lacking paperwork and taking funds from a client or attorney trust account.
+
+```{r}
+trust_occurences <- md_att_sanctions %>% 
+  filter(str_detect(text, "attorney trust account")) %>% 
+  group_by(fiscal_year) %>% 
+  summarize(
+    occurences = n()
+  )
+
+# See n-grams with n = 5
+fivegrams <- md_att_sanctions %>% 
+  unnest_tokens(fivegram, text, token = "ngrams", n = 5) %>% 
+  separate(fivegram, c("word1", "word2", "word3", "word4", "word5"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word) %>% 
+  filter(!word5 %in% stop_words$word) %>% 
+  mutate(fivegram = paste(word1, word2, word3, word4, word5, sep=" ")) %>%
+  group_by(fivegram) %>%
+  tally(sort=TRUE) %>%
+  mutate(percent = (n/sum(n))*100) %>%
+  head(10)
+
+## See other causes
+stop_words_edited <- stop_words %>% 
+  add_row(word = "account") %>% 
+  add_row(word = "trust") %>% 
+  add_row(word = "thirty")
+
+trigrams_alt <- md_att_sanctions %>% 
+  unnest_tokens(trigram, text, token = "ngrams", n = 3) %>% 
+  separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  mutate(trigram = paste(word1, word2, word3, sep=" ")) %>%
+  group_by(trigram) %>%
+  tally(sort=TRUE) %>%
+  mutate(percent = (n/sum(n))*100) %>%
+  head(10)
+```
