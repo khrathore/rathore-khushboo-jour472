@@ -110,7 +110,10 @@ General comparison of performance at Home vs Away games:
   Do teams get more shutouts at Home games?
   Do players get carded more at Away games?
   Does being at a foreign field impact wins and losses aka W/L ratios?
-  
+
+# Answer:
+
+Our analysis seems to indicate that teams have a significant advantage at home games. There was a significant difference in win percent, shutouts, and yellow cards for each team between home and away games. However, there was 
 
 ``` {r}
 
@@ -149,18 +152,20 @@ matches_compares <- match_all %>%
   ) %>% 
   left_join(matches_wld, by = c("team", "home_away"))
 
+# Boxplots that show wins, yellow cards, and mean of fouls 
 boxplot(matches_compares$win_percent ~ matches_compares$home_away)
 boxplot(matches_compares$all_yellow ~ matches_compares$home_away)
 boxplot(matches_compares$foul_mean ~ matches_compares$home_away)
 
-write_csv(matches_compares, "data/home_away_comp.csv")
 
+# Separate dataframes into data by home and away games
 teams_home <- matches_compares %>% 
   filter(home_away == "Home")
 
 teams_away <- matches_compares %>% 
   filter(home_away == "Away")
 
+# T-Test to see home and away differences.
 t.test(teams_home$win_percent, teams_away$win_percent, paired=TRUE)
 t.test(teams_home$shutouts, teams_away$shutouts, paired=TRUE)
 t.test(teams_home$all_yellow, teams_away$all_yellow, paired=TRUE)
@@ -170,6 +175,8 @@ t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 2. Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season (group player performances across seasons and divide by # seasons played) ?
 
 ```{r}
+
+# Specifically collect statistics for any placyers who have jersey numbers 10, 11, 9, 7, and 23.
 player_filter <- players_all %>% 
   filter(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23) %>% 
   select(-full_name, -points, -red_cards:-corners)
@@ -334,12 +341,12 @@ MISC: big red, big green, purple aces, crimson, pride, Fighting Illini, Ragin' C
 
 
 ```{r}
-team_unique <- all_teams %>%
+team_sums <- all_teams %>%
   group_by(institution, conference) %>% 
   summarize(
-    avg_goals = round(mean(goals),2),
-    avg_shutouts = round(mean(shutouts),2),
-    avg_fouls = round(mean(fouls),2)
+    tot_goals = sum(goals),
+    tot_shutouts = sum(shutouts),
+    tot_fouls = sum(fouls)
   ) %>% 
   distinct(institution, .keep_all = TRUE)
 
@@ -364,9 +371,9 @@ mascot_list <- match_all %>%
   )) %>% 
   group_by(team, mascot, institution) %>% 
   summarize(
-    avg_score = round(mean(team_score),2)
+    tot_yc = sum(yellow_cards)
   ) %>% 
-  inner_join(team_unique, by = "institution") %>% 
+  inner_join(team_sums, by = "institution") %>% 
   mutate(mas_category = case_when(
     str_detect(str_to_lower(mascot), "devil|titan|griffin|demon|dragon|phoenix|billiken|blazer|triton")~"mythical",
     str_detect(str_to_lower(mascot), regex_peoplemascot)~"people",
@@ -380,12 +387,15 @@ mascot_list <- match_all %>%
 by_mascot <- mascot_list %>% 
   group_by(mas_category) %>% 
   summarize(
-    mean_fouls = mean(avg_fouls),
-    med_fouls = median(avg_fouls),
-    mean_goals = mean(avg_goals),
-    med_goals = median(avg_goals),
-    med_shut = median(avg_shutouts)
+    mean_fouls = mean(tot_fouls),
+    med_fouls = median(tot_fouls),
+    mean_goals = mean(tot_goals),
+    med_goals = median(tot_goals),
+    med_shut = median(tot_shutouts)
   )
+
+boxplot(mascot_list$tot_goals ~ mascot_list$mas_category)
+boxplot(mascot_list$tot_shutouts ~ mascot_list$mas_category)
 
 ```
 
