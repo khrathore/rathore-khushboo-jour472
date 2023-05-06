@@ -158,6 +158,7 @@ boxplot(matches_compares$all_yellow ~ matches_compares$home_away)
 boxplot(matches_compares$foul_mean ~ matches_compares$home_away)
 
 
+
 # Separate dataframes into data by home and away games
 teams_home <- matches_compares %>% 
   filter(home_away == "Home")
@@ -176,15 +177,17 @@ t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
 ```{r}
 
-# Specifically collect statistics for any placyers who have jersey numbers 10, 11, 9, 7, and 23.
+# Specifically collect statistics for any players who have jersey numbers 10, 11, 9, 7, and 23.
 player_filter <- players_all %>% 
   filter(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23) %>% 
   select(-full_name, -points, -red_cards:-corners)
 
+# Look at the statistics for players outside of those jersey numbers
 player_anti <- players_all %>% 
   filter(!(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23)) %>% 
   select(-full_name, -points, -red_cards:-corners)
 
+# Get some statistics for each jersey number we like
 jersey_players <- player_filter %>% 
   # Asked Chat GPT: "How do I replace the NA values in every numeric column in a R dataframe with 0?"
   mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
@@ -199,6 +202,7 @@ jersey_players <- player_filter %>%
     gwg = mean(gwg)
   )
 
+# Get statistics for all other jersey numbers
 other_players <- player_anti %>% 
   mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
   group_by(jersey) %>%
@@ -212,6 +216,7 @@ other_players <- player_anti %>%
     gwg = mean(gwg)
   )
 
+# Create a chart that shows which 
 player_by_jersey <- jersey_players %>% 
   rbind(other_players) %>% 
   ggplot(aes(x = mean_goals, y = goal_shtrat,label = jersey)) +
