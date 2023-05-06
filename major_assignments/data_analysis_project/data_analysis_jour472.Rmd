@@ -47,68 +47,87 @@ wsoccer_teams_2021 <- read_csv("url_csvs/NCAA Women's Soccer - 2021.csv") %>%
 wsoccer_teams_2022 <- read_csv("url_csvs/NCAA Women's Soccer - 2022.csv") %>% 
   clean_names()
 
+# Find the column names, create a key
 col_names <- colnames(wsoccer_matchstat_2020)
 # Data Dictionary: https://docs.google.com/spreadsheets/d/1lnEauTJ62LcCfWJdwIHUitD6Hai_-1YCDVsEbwiTSG8/edit#gid=0
 
+# Clean 2020 match data so that we can rbind()
 match_20 <- wsoccer_matchstat_2020 %>% 
   mutate(season = 2020) %>% 
   select(-points, -na.x, -na.y, -defensive_points)
 
+# Clean 2021 match data so that we can rbind()
 match_21 <- wsoccer_matchstat_2021 %>% 
   mutate(season = 2021) %>% 
   select(-gwg, -defensive_gwg)
 
+# Clean 2022 match data so that we can rbind()
 match_22 <- wsoccer_matchstat_2022 %>% 
   mutate(season = 2022) %>% 
   select(-gwg, -defensive_gwg)
   
-
+# All matches across all three seasons
 match_all <- match_20 %>% 
   rbind(match_21, match_22)
 
+# Clean 2021 team data so that we can rbind()
 teams_21 <- wsoccer_teams_2021 %>% 
   select(-so_g, -gwg, -games)
 
+# Clean 2022 team data so that we can rbind()
 teams_22 <- wsoccer_teams_2022 %>% 
   select(-so_g, -gwg, -games)
 
+# Clean 2020 team data so that we can rbind()
 cols_20 <- names(wsoccer_teams_2020)
 
 teams_20 <- wsoccer_teams_2020 %>% 
   select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att)
 
+# Clean 2020 player data so that we can rbind()
 players_20 <- wsoccer_playerstat_2020 %>% 
   select(season, team, jersey, full_name, roster_name, first_name, last_name, yr, pos, gp, gs, goals, assists, points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, gaa, saves, sv_pct, combined_sho, shutouts, g_wins, g_loss, d_saves, corners, pk, pk_att, gwg)
 
+# Clean 2021 player data so that we can rbind()
 players_21 <- wsoccer_playerstat_2021 %>% 
   select(-so_g, -games)
 
+# Clean 2022 player data so that we can rbind()
 players_22 <- wsoccer_playerstat_2022 %>% 
   select(-so_g, -games)
 
+# All players across three seasons
 players_all <- players_20 %>% 
   rbind(players_21, players_22)
 
+# All teams across three seasons
 all_teams <- teams_20 %>% 
  rbind(teams_21, teams_22)
 ```
 
-# Questions
-1. General comparison of performance at Home vs Away games:
+# Question One:
+General comparison of performance at Home vs Away games:
   Do teams get more shutouts at Home games?
   Do players get carded more at Away games?
-  Does being at a new field impact wins and losses aka W/L ratios?
+  Does being at a foreign field impact wins and losses aka W/L ratios?
   
+
 ``` {r}
+
+
 matches_wld <- match_all %>% 
+  # Group games by home/away and win-loss-draw for each team
   group_by(team, home_away, outcome) %>% 
   count() %>% 
   pivot_wider(names_from = outcome, values_from = n) %>% 
   replace(is.na(.), 0) %>% 
+  # Create a column that has the Win-Loss-Draw ratio for the teams across all seasons
   mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
+  # Create a column that shows the win percentage for home vs away games across all seasons
   mutate(win_percent = Win/(Win+Loss+Draw)*100)
 
 matches_compares <- match_all %>% 
+  # Assign a numeric value to each outcome
   mutate(outcome = case_when(
     str_detect(outcome,"Loss")~0,
     str_detect(outcome,"Win")~1,
@@ -116,6 +135,7 @@ matches_compares <- match_all %>%
     TRUE~NA
   )) %>% 
   group_by(team, home_away) %>% 
+  # Create summary statistics for a variety of 
   summarize(
     w_l_d = mean(outcome),
     shutouts = sum(shutouts),
@@ -129,6 +149,22 @@ matches_compares <- match_all %>%
   ) %>% 
   left_join(matches_wld, by = c("team", "home_away"))
 
+boxplot(matches_compares$win_percent ~ matches_compares$home_away)
+boxplot(matches_compares$all_yellow ~ matches_compares$home_away)
+boxplot(matches_compares$foul_mean ~ matches_compares$home_away)
+
+write_csv(matches_compares, "data/home_away_comp.csv")
+
+teams_home <- matches_compares %>% 
+  filter(home_away == "Home")
+
+teams_away <- matches_compares %>% 
+  filter(home_away == "Away")
+
+t.test(teams_home$win_percent, teams_away$win_percent, paired=TRUE)
+t.test(teams_home$shutouts, teams_away$shutouts, paired=TRUE)
+t.test(teams_home$all_yellow, teams_away$all_yellow, paired=TRUE)
+t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
 ```
 2. Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season (group player performances across seasons and divide by # seasons played) ?
@@ -267,7 +303,35 @@ conference_stats <- institution_year %>%
 ```
 
 4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the offense or defense performance impact match result more?
+
+```{r}
+team_shutouts <- team_unique %>%
+  mutate(outcome = case_when(
+    str_detect(outcome,"Loss")~0,
+    str_detect(outcome,"Win")~1,
+    str_detect(outcome,"Draw")~.5,
+    TRUE~NA
+  ))
+  
+  
+  
+# team_goals <- team_unique %>%
+  
+```
+
+
 5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
+
+ANIMAL: (golden, purple, screaming) eagles, (runnin', lady) bulldogs, wildcats, falcons, zips, (lady) hornets, (lady) tigers, (lady) panthers, (lady) lions, razorbacks, cougars, cardinals, bruins, broncos, terriers, bison(s), bulls, roadrunners, mustangs, lancers, camels, mocs, chanticleers, buffaloes, rams, bluejays, (blue) hens, hornets, stags, owls, gators, hoya*, lopes (antelopes), Rainbow Wahine, (christian) huskies, (lady) jaguars, bengals, redbirds, Hoosiers, gaels, dolphins,	Gamecocks, JMU dukes, kangaroos, Roos, sharks, golden flashes, LMU (CA) Lions, leopards, greyhounds, Red Foxes, Thundering Herd, Terrapins (terps), golden gophers, (golden) grizzlies, lobos, aggies, tar heels, ospreys, bobcats, sooners, monarchs, mavericks, ducks, beavers, nittany lions, Mastodons, spiders, broncs, Peacocks, jackrabbits, coyotes, Salukis, Bonnies, tommies, horned frogs, longhorns, anteaters, retrievers, utes, beacons, catamounts, hokies, leathernecks, badgers, great danes, penguins
+
+MYTHICAL: (sun, blue) devils, titans, (golden) griffins, (blue, lady) demons, demon deacons, dragons, phoenix, devilettes, Billikens, blazers, tritons
+
+PEOPLE: governors, (lady) braves, mountaineers, (black, FDU, Scarlet) knights, matadors, chippewas, buccaneers, 49ers, vikings, (blue, red) raiders, flyers, pioneers, duquesne dukes*, (lady) pirates, islanders, colonels, seminoles, paladins, colonials, crusaders, vandals, explorers, trojans, Lady Techsters, jaspers, minutewomen, cowgirls, warriors, spartans, racers, highlanders, midshipmen, cornhuskers, huskers, lumberjacks, norse, fighting irish, (lady) rebels, quakers, pilots, friars, boilermakers, royals, Ladyjacks, Aztecs, Toreros, Dons, Saints, Hatters, Texas, Volunteers, cadets, gauchos, miners, vaqueros, trailblazers, VMI cadets, commodores, cavaliers, musketeers
+
+NATURE: crimson tide, cyclones, Sycamores, (lady) flame, beach, hurricanes, buckeyes, waves, red storm, orange, golden hurricane, flames
+
+MISC: big red, big green, purple aces, crimson, pride, Fighting Illini, Ragin' Cajuns, Ramblers, mean green, blue hose, the Red Flash, rockets, lady topper, tribe
+
 
 ```{r}
 team_unique <- all_teams %>%
@@ -280,6 +344,7 @@ team_unique <- all_teams %>%
   distinct(institution, .keep_all = TRUE)
 
 regex_unis <- regex(paste(unique(all_teams$institution), collapse = "|"))
+regex_peoplemascot <- regex("governors|braves|mountaineers|duke|knights|matadors|chippewas|buccaneers|49ers|vikings|raiders|flyers|pioneers|pirates|islanders|colonels|seminoles|paladins|colonials|crusaders|vandals|explorers|trojans|techsters|jaspers|minutewomen|cowgirls|warriors|spartans|racers|highlanders|midshipmen|cornhuskers|huskers|lumberjacks|norse|irish|rebels|quakers|pilots|friars|boilermakers|royals|ladyjacks|aztecs|toreros|dons|saints|hatters|texas|volunteers|cadets|gauchos|miners|vaqueros|trailblazers|cadets|commodores|cavaliers|musketeers|lancer|gael|beacon")
 
 mascot_list <- match_all %>% 
   mutate(institution = str_extract(team, regex_unis)) %>% 
@@ -299,24 +364,30 @@ mascot_list <- match_all %>%
   )) %>% 
   group_by(team, mascot, institution) %>% 
   summarize(
-    avg_score = round(mean(team_score),2),
-    avg_sh_att = round(mean(sh_att),2),
-    avg_so_g = round(mean(so_g),2),
+    avg_score = round(mean(team_score),2)
   ) %>% 
   inner_join(team_unique, by = "institution") %>% 
   mutate(mas_category = case_when(
-    
-  ))
+    str_detect(str_to_lower(mascot), "devil|titan|griffin|demon|dragon|phoenix|billiken|blazer|triton")~"mythical",
+    str_detect(str_to_lower(mascot), regex_peoplemascot)~"people",
+    str_detect(str_to_lower(institution), "vmi")~"people",
+    str_detect(str_to_lower(mascot), "tide|cyclones|sycamores|flame|beach|hurricane|buckeyes|waves|storm|orange")~"nature",
+    str_detect(str_to_lower(mascot), "big red|big green|purple aces|crimson|pride|illini|cajuns|ramblers|mean green|blue hose|red flash|rockets|lady topper|tribe")~"miscellaneous",
+    TRUE~"animal"
+  )) %>% 
+  replace(is.na(.), 0) 
 
+by_mascot <- mascot_list %>% 
+  group_by(mas_category) %>% 
+  summarize(
+    mean_fouls = mean(avg_fouls),
+    med_fouls = median(avg_fouls),
+    mean_goals = mean(avg_goals),
+    med_goals = median(avg_goals),
+    med_shut = median(avg_shutouts)
+  )
 
 ```
-eagles, (runnin') bulldogs, wildcats, falcons, zips, (lady) hornets, (lady) tigers, panthers, bears, (lady) lions, razorbacks, (red) wolves, cougars, cardinals, (lady, golden) bears, bruins, bearcats, broncos, terriers, bison, bulls, roadrunners, mustangs, lancers, camels, mocs, chanticleers, buffaloes, rams, bluejays, (blue) hens, hornets, stags, owls, gators, hoya*, lopes (antelopes), hawks, as animal
-(sun, blue) devils, titans, (golden) griffins, (blue) demons, demon deacons, dragons, phoenix as mythical creature
-governors, (lady) braves, mountaineers, (black, FDU) knights, matadors, chippewas, buccaneers, 49ers, vikings, raiders, flyers, pioneers, dukes*, (lady) pirates, islanders, colonels, seminoles, paladins, colonials,  as people
-crimson tide as element
-
-miscellaneous: sugar bears, big red, big green, purple aces, crimson,  
-
 
 ## Caveats and Limitations:
 - Some statistics in 2020 are not present in 2021 and 2022, and vice versa
