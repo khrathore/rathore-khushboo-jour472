@@ -171,7 +171,11 @@ t.test(teams_home$all_yellow, teams_away$all_yellow, paired=TRUE)
 t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
 ```
-2. Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season (group player performances across seasons and divide by # seasons played) ?
+# Question Two:
+
+Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season?
+
+# Answer:
 
 ```{r}
 
