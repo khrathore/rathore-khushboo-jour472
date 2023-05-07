@@ -113,11 +113,9 @@ General comparison of performance at Home vs Away games:
 
 # Answer:
 
-Our analysis seems to indicate that teams have a significant advantage at home games. There was a significant difference in win percent, shutouts, and yellow cards for each team between home and away games. However, there was 
+Our analysis seems to indicate that teams have a significant advantage at home games. There was a significant difference in win percent, shutouts, and yellow cards for each team between home and away games. However, there was not a significant difference in the number of fouls usually given in home vs away games. It would be interesting to continue this by looking at difference in referees and if there tend to be stricter refs in certain conferences or at certain universities which could contribute to the cards. It would also be interesting to look at home and away with the additional context of a different field surface (actual grass vs turf, etc.)
 
 ``` {r}
-
-
 matches_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
   group_by(team, home_away, outcome) %>% 
@@ -314,19 +312,43 @@ conference_stats <- institution_year %>%
 
 ```
 
-4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the offense or defense performance impact match result more?
+4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the strength of an offense or defense impact match result more?
 
 ```{r}
-team_shutouts <- team_unique %>%
-  mutate(outcome = case_when(
-    str_detect(outcome,"Loss")~0,
-    str_detect(outcome,"Win")~1,
-    str_detect(outcome,"Draw")~.5,
-    TRUE~NA
-  ))
+team_wld <- match_all %>% 
+  # Group games by home/away and win-loss-draw for each team
+  group_by(team, outcome) %>% 
+  count() %>% 
+  pivot_wider(names_from = outcome, values_from = n) %>% 
+  replace(is.na(.), 0) %>% 
+  # Create a column that has the Win-Loss-Draw ratio for the teams across all seasons
+  mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
+  # Create a column that shows the win percentage for home vs away games across all seasons
+  mutate(win_percent = Win/(Win+Loss+Draw)*100)
+
+matches_od <- match_all %>%
+  group_by(team) %>% 
+  summarize(
+    tot_shut = sum(shutouts),
+    avg_shut = mean(shutouts),
+    tot_goals = sum(goals),
+    avg_goals = mean(goals)
+  ) %>% 
+  left_join(team_wld, by = "team")
+
+hist(matches_od$win_percent ~ matches_od$avg_goals)
   
+top_shut <- matches_od %>% 
+  arrange(desc(avg_shut)) %>% 
+  head(100)
   
-  
+top_goals <- matches_od %>% 
+  arrange(desc(avg_goals)) %>% 
+  head(100)
+
+boxplot(top_shut$win_percent)
+boxplot(top_goals$win_percent)
+
 # team_goals <- team_unique %>%
   
 ```
