@@ -115,6 +115,10 @@ General comparison of performance at Home vs Away games:
 
 Our analysis seems to indicate that teams have a significant advantage at home games. There was a significant difference in win percent, shutouts, and yellow cards for each team between home and away games. However, there was not a significant difference in the number of fouls usually given in home vs away games. It would be interesting to continue this by looking at difference in referees and if there tend to be stricter refs in certain conferences or at certain universities which could contribute to the cards. It would also be interesting to look at home and away with the additional context of a different field surface (actual grass vs turf, etc.)
 
+In noticing that teams have a significant advantage at home, does this contribute to the importance of the “win on the road” mentality? Also, does this very among different sports or does it remain the same across sports, collegiate and professional? with the number of fouls given not being significant, does the “fouls” include only yellow and red cards or anytime the player gets a foul without a card? Also, it would be interesting to see if the number of set pieces contributes to wins as well, because there is a phrase in women’s soccer: “games are won or lost on setpieces”. If we were to do this again, maybe we could see the amount of free kicks, corner kicks, and pks that led to a goal or win. 
+
+Overall, further analysis of this would probably be the most newsworthy. While the difference in overall performance isn't very new, understanding the reasons behind these changes could help teams and change the understanding of the sport.
+
 ``` {r}
 matches_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
