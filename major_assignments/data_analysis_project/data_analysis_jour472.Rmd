@@ -175,7 +175,9 @@ t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
 Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season?
 
-# Answer:
+# Answer: 
+
+We found that the amount of people with those numbers who score game winning goals isn’t as frequent as we’d suspected. Instead, we found a small trend of girls with higher random numbers, such as 66 or 52. We often attributed this back to a parent playing professionally (usually football) and that being their number. However, one of the girls on UCLA (Sunshine Fontes, #50) was one of these players who had the most game winning goals. Though she didn’t have a record of professional athlete parents, she has had time on the US national team. If we were to pursue this idea, it would be interesting to see if we could find how many collegiate players are also National team players and where most of them go to school. I’d want to see if the team with the most national team players (for any country) has one of the best records. 
 
 ```{r}
 
@@ -234,10 +236,16 @@ player_by_jersey <- jersey_players %>%
 player_by_jersey
 ```
 
-3. Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences
+# Question 3:
+
+Upperclassmen vs Underclassmen: what years typically dominate the starting lineup in different conferences
+
+# Answer:
+
+If the logic of this code is correct, which we would like a second set of eyes on, it seems like the highest performing conferences had majority seniors. However, the AAC has a relatively even distribution in their players. Only one conference had more than half of their freshman playing, but they are made up of non-conference teams (it's weird).
+
 
 ```{r}
-# Need: number games played per season, number of games each player started during that season over the number of games the team played. Conference information, year information.
 
 games_per_team <- match_all %>% 
   group_by(season, team) %>% 
@@ -316,7 +324,15 @@ conference_stats <- institution_year %>%
 
 ```
 
-4. Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the strength of an offense or defense impact match result more?
+# Question 4:
+
+Team with the most shutouts vs team with most goals scored: which team is more successful on avg? Does the strength of an offense or defense impact match result more?
+
+# Answer:
+
+For the team that has the most shutouts versus goals scored, it would be interesting to see if it depends on how the goal is scored. Though we don’t have access to that information, we think it would be so cool to get data on whether it is a defensive error (which could be up to interpretation) or a true well orchestrated attack that leads to a goal. Though some goals could fall in both categories, we think that that could affect how one looks at the “goal scored” category. 
+
+It looks like goals may matter more, but it's hard to separate teams with most goals and shutouts because they tend to be a similar list.
 
 ```{r}
 team_wld <- match_all %>% 
@@ -358,7 +374,11 @@ boxplot(top_goals$win_percent)
 ```
 
 
-5. Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
+# Question 5:
+
+Success rate of different types of mascots: (animals, mythical creatures, humans, etc.)?
+
+# Answer: 
 
 ANIMAL: (golden, purple, screaming) eagles, (runnin', lady) bulldogs, wildcats, falcons, zips, (lady) hornets, (lady) tigers, (lady) panthers, (lady) lions, razorbacks, cougars, cardinals, bruins, broncos, terriers, bison(s), bulls, roadrunners, mustangs, lancers, camels, mocs, chanticleers, buffaloes, rams, bluejays, (blue) hens, hornets, stags, owls, gators, hoya*, lopes (antelopes), Rainbow Wahine, (christian) huskies, (lady) jaguars, bengals, redbirds, Hoosiers, gaels, dolphins,	Gamecocks, JMU dukes, kangaroos, Roos, sharks, golden flashes, LMU (CA) Lions, leopards, greyhounds, Red Foxes, Thundering Herd, Terrapins (terps), golden gophers, (golden) grizzlies, lobos, aggies, tar heels, ospreys, bobcats, sooners, monarchs, mavericks, ducks, beavers, nittany lions, Mastodons, spiders, broncs, Peacocks, jackrabbits, coyotes, Salukis, Bonnies, tommies, horned frogs, longhorns, anteaters, retrievers, utes, beacons, catamounts, hokies, leathernecks, badgers, great danes, penguins
 
@@ -370,6 +390,9 @@ NATURE: crimson tide, cyclones, Sycamores, (lady) flame, beach, hurricanes, buck
 
 MISC: big red, big green, purple aces, crimson, pride, Fighting Illini, Ragin' Cajuns, Ramblers, mean green, blue hose, the Red Flash, rockets, lady topper, tribe
 
+Based on the mascot question, we had a feeling that the mascot with the most success would be an animal because that is the most common mascot to have in women’s college soccer. We sorted the mascots into categories: animal, mythical, people, nature, and miscellaneous. Though we had some trouble with categorizing (an issue was that Georgetown’s mascot is officially a Hoya, whereas their mascot on every scrap of merchandise is a bulldog), we were able to sort accordingly. Another problem we had was that JMU’s mascot is a duke (dog) whereas Duquesne is a duke (person of high class in a royal sense). So despite some minor differences, we sorted the groups accordingly. It would be interesting to see how different mascots do against each other, like do animals typically beat mythical creatures, etc. 
+
+It's worth nothing that teams from nature based names actually do better in some of these fields. However, we would need to look further at which teams may be doing very well who are just in that category.
 
 ```{r}
 team_sums <- all_teams %>%
