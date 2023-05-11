@@ -120,6 +120,9 @@ In noticing that teams have a significant advantage at home, does this contribut
 Overall, further analysis of this would probably be the most newsworthy. While the difference in overall performance isn't very new, understanding the reasons behind these changes could help teams and change the understanding of the sport.
 
 ``` {r}
+
+## We'll be talking on Tuesday about correlations - which share some similarities with t-tests - and I think those could be useful for you in determining how important those home field advantages are. You also could do some multiple regression to see if a combination of factors add up to a meaningful relationship (https://www.thescoop.org/sports/multipleregression.html). 
+
 matches_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
   group_by(team, home_away, outcome) %>% 
@@ -184,6 +187,8 @@ Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals 
 We found that the amount of people with those numbers who score game winning goals isn’t as frequent as we’d suspected. Instead, we found a small trend of girls with higher random numbers, such as 66 or 52. We often attributed this back to a parent playing professionally (usually football) and that being their number. However, one of the girls on UCLA (Sunshine Fontes, #50) was one of these players who had the most game winning goals. Though she didn’t have a record of professional athlete parents, she has had time on the US national team. If we were to pursue this idea, it would be interesting to see if we could find how many collegiate players are also National team players and where most of them go to school. I’d want to see if the team with the most national team players (for any country) has one of the best records. 
 
 ```{r}
+
+# Your work here left me wondering what the distribution is like for all numbers - in other words, whether your choice of popular numbers (23, for example, doesn't seem to be massively popular compared to some others). I'd encourage you to start broad and then narrow down your focus based on your findings and theories.
 
 # Specifically collect statistics for any players who have jersey numbers 10, 11, 9, 7, and 23.
 player_filter <- players_all %>% 
@@ -250,6 +255,8 @@ If the logic of this code is correct, which we would like a second set of eyes o
 
 
 ```{r}
+
+# Shouldn't percent_start be the percentage of games started/games played (instead of total games the team plays), based on the theory that you can't start a game you don't play in? Seems like otherwise you're even more likely to have seniors dominate the starting percentages. 
 
 games_per_team <- match_all %>% 
   group_by(season, team) %>% 
@@ -339,6 +346,8 @@ For the team that has the most shutouts versus goals scored, it would be interes
 It looks like goals may matter more, but it's hard to separate teams with most goals and shutouts because they tend to be a similar list.
 
 ```{r}
+# I think another way of asking this question could be this: "Do teams that record the most shutouts really need to do so because they are not high-scoring teams?" As you've found there are plenty of high-scoring teams that record shutouts; are there low-scoring teams that do the same consistently? Would speak to style of play.
+
 team_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
   group_by(team, outcome) %>% 
@@ -399,6 +408,9 @@ Based on the mascot question, we had a feeling that the mascot with the most suc
 It's worth nothing that teams from nature based names actually do better in some of these fields. However, we would need to look further at which teams may be doing very well who are just in that category.
 
 ```{r}
+
+# If you're going to go down this road, then you absolutely should answer the matchup question (how well to animals do vs people, etc). Same for identical mascot name matchups - how often do they occur? You should get really creative here.
+
 team_sums <- all_teams %>%
   group_by(institution, conference) %>% 
   summarize(
