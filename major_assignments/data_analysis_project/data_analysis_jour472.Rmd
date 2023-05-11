@@ -25,6 +25,7 @@ library(lubridate)
 library(janitor)
 library(dplyr)
 library(ggplot2)
+library(corrr)
 ```
 
 ## Load and Cleaning Data
@@ -163,7 +164,6 @@ boxplot(matches_compares$all_yellow ~ matches_compares$home_away)
 boxplot(matches_compares$foul_mean ~ matches_compares$home_away)
 
 
-
 # Separate dataframes into data by home and away games
 teams_home <- matches_compares %>% 
   filter(home_away == "Home")
@@ -182,6 +182,12 @@ t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
 Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season?
 
+We wanted to pivot our question 2 because after a lengthy and fruitful discussion, we realized that I was basing my "popular numbers in soccer" on the men's side of soccer, particularly professional. To be honest, culturally, the men's and women's side of soccer are slightly different. So based on (my) experience in women's soccer since I was 3 years old, I would understand how the more popular numbers would be different depending on gender. Also, more men watch professional men's soccer (I'm assuming) - Caroline
+
+# Question Two Revised:
+
+Is there a significant relationship in performance and jersey number? Why are certain numbers more popular and which numbers have the best performance? Why do players choose the numbers that they do?
+
 # Answer: 
 
 We found that the amount of people with those numbers who score game winning goals isn’t as frequent as we’d suspected. Instead, we found a small trend of girls with higher random numbers, such as 66 or 52. We often attributed this back to a parent playing professionally (usually football) and that being their number. However, one of the girls on UCLA (Sunshine Fontes, #50) was one of these players who had the most game winning goals. Though she didn’t have a record of professional athlete parents, she has had time on the US national team. If we were to pursue this idea, it would be interesting to see if we could find how many collegiate players are also National team players and where most of them go to school. I’d want to see if the team with the most national team players (for any country) has one of the best records. 
@@ -189,6 +195,21 @@ We found that the amount of people with those numbers who score game winning goa
 ```{r}
 
 # Your work here left me wondering what the distribution is like for all numbers - in other words, whether your choice of popular numbers (23, for example, doesn't seem to be massively popular compared to some others). I'd encourage you to start broad and then narrow down your focus based on your findings and theories.
+
+player_dist <- players_all %>% 
+  distinct(roster_name, .keep_all = TRUE)
+
+player_by_jersey <- player_dist %>% 
+  group_by(jersey) %>% 
+  summarize(
+    num_players = n(),
+    mean_goals = mean(goals, na.rm = TRUE),
+    median_goals = median(goals, na.rm = TRUE),
+    mean_gwg = mean(gwg, na.rm = TRUE),
+    mean_shtrat = mean((goals/sh_att)*100, na.rm = TRUE),
+    mean_gp = mean(gp, na.rm = TRUE),
+    mean_fouls = mean(fouls, na.rm = TRUE)
+  )
 
 # Specifically collect statistics for any players who have jersey numbers 10, 11, 9, 7, and 23.
 player_filter <- players_all %>% 
@@ -230,19 +251,20 @@ other_players <- player_anti %>%
   )
 
 # Create a chart that shows which 
-player_by_jersey <- jersey_players %>% 
-  rbind(other_players) %>% 
-  ggplot(aes(x = mean_goals, y = goal_shtrat,label = jersey)) +
-  geom_point(size = 2, shape = 1, color = "black") + 
+jersey_chart <- player_by_jersey %>% 
+  ggplot(aes(x = num_players, y = median_goals,label = jersey)) +
+  geom_point(size = 1, shape = 1, color = "black") + 
   labs(
     title = "Higher Jersey Numbers Are More of a Threat Near Goal",
-    x = "Mean Goals",
-    y = "Percent of Shots Made"
+    x = "Number of Players",
+    y = "Mean Goals"
   ) +
-  geom_text(check_overlap = TRUE)
+  geom_text(check_overlap = TRUE, vjust = "bottom", hjust = "left")
 
+jersey_chart
 
-player_by_jersey
+player_zero <- player_dist %>% 
+  filter(jersey == 0)
 ```
 
 # Question 3:
@@ -257,6 +279,8 @@ If the logic of this code is correct, which we would like a second set of eyes o
 ```{r}
 
 # Shouldn't percent_start be the percentage of games started/games played (instead of total games the team plays), based on the theory that you can't start a game you don't play in? Seems like otherwise you're even more likely to have seniors dominate the starting percentages. 
+
+# Make this started/games ELIGIBLE (games from seasons they competed in)
 
 games_per_team <- match_all %>% 
   group_by(season, team) %>% 
