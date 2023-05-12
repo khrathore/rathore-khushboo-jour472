@@ -69,7 +69,12 @@ match_22 <- wsoccer_matchstat_2022 %>%
   
 # All matches across all three seasons
 match_all <- match_20 %>% 
-  rbind(match_21, match_22)
+  rbind(match_21, match_22) %>% 
+  mutate(ha_number = case_when(
+    home_away == "Home"~ 0,
+    home_away == "Away"~ 1,
+    TRUE ~ NA
+  ))
 
 # Clean 2021 team data so that we can rbind()
 teams_21 <- wsoccer_teams_2021 %>% 
@@ -143,7 +148,7 @@ matches_compares <- match_all %>%
     str_detect(outcome,"Draw")~.5,
     TRUE~NA
   )) %>% 
-  group_by(team, home_away) %>% 
+  group_by(team, home_away, ha_number) %>% 
   # Create summary statistics for a variety of 
   summarize(
     w_l_d = mean(outcome),
@@ -177,6 +182,13 @@ t.test(teams_home$shutouts, teams_away$shutouts, paired=TRUE)
 t.test(teams_home$all_yellow, teams_away$all_yellow, paired=TRUE)
 t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
+
+matches_compares %>% 
+  select(ha_number, win_percent, goal_rate, foul_mean, score_mean) %>% 
+  correlate()
+
+summary(lm(matches_compares$win_percent ~ matches_compares$ha_number + matches_compares$goal_rate + matches_compares$score_mean))
+
 ```
 # Question Two:
 
@@ -190,7 +202,7 @@ Is there a significant relationship in performance and jersey number? Why are ce
 
 # Answer: 
 
-We found that the amount of people with those numbers who score game winning goals isn’t as frequent as we’d suspected. Instead, we found a small trend of girls with higher random numbers, such as 66 or 52. We often attributed this back to a parent playing professionally (usually football) and that being their number. However, one of the girls on UCLA (Sunshine Fontes, #50) was one of these players who had the most game winning goals. Though she didn’t have a record of professional athlete parents, she has had time on the US national team. If we were to pursue this idea, it would be interesting to see if we could find how many collegiate players are also National team players and where most of them go to school. I’d want to see if the team with the most national team players (for any country) has one of the best records. 
+
 
 ```{r}
 
@@ -199,7 +211,8 @@ We found that the amount of people with those numbers who score game winning goa
 player_dist <- players_all %>% 
   distinct(roster_name, .keep_all = TRUE)
 
-player_by_jersey <- player_dist %>% 
+nongk_player_by_jersey <- player_dist %>% 
+  filter(!str_detect(pos, "GK")) %>% 
   group_by(jersey) %>% 
   summarize(
     num_players = n(),
