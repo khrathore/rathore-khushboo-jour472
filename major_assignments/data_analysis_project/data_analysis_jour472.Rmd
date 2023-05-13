@@ -182,11 +182,12 @@ t.test(teams_home$shutouts, teams_away$shutouts, paired=TRUE)
 t.test(teams_home$all_yellow, teams_away$all_yellow, paired=TRUE)
 t.test(teams_home$foul_mean, teams_away$foul_mean, paired=TRUE)
 
-
+# Look at correlations for some variables, including home/away, win percent, goal rate, mean fouls, and mean score
 matches_compares %>% 
   select(ha_number, win_percent, goal_rate, foul_mean, score_mean) %>% 
   correlate()
 
+# Look at a linear regression for win percent by home/away, goal rate and score mean. 
 summary(lm(matches_compares$win_percent ~ matches_compares$ha_number + matches_compares$goal_rate + matches_compares$score_mean))
 
 ```
@@ -202,7 +203,7 @@ Is there a significant relationship in performance and jersey number? Why are ce
 
 # Answer: 
 
-
+When we take the widest look at the data by jersey numbers, we see a huge drop from 160 players to only 80 between the 35th and 36th most popular number. The most popular number that does well 
 
 ```{r}
 
@@ -264,15 +265,14 @@ other_players <- player_anti %>%
   )
 
 # Create a chart that shows which 
-jersey_chart <- player_by_jersey %>% 
-  ggplot(aes(x = num_players, y = median_goals,label = jersey)) +
+jersey_chart <- nongk_player_by_jersey %>% 
+  ggplot(aes(x = num_players, y = mean_goals)) +
   geom_point(size = 1, shape = 1, color = "black") + 
   labs(
     title = "Higher Jersey Numbers Are More of a Threat Near Goal",
     x = "Number of Players",
     y = "Mean Goals"
-  ) +
-  geom_text(check_overlap = TRUE, vjust = "bottom", hjust = "left")
+  )
 
 jersey_chart
 
@@ -291,11 +291,7 @@ If the logic of this code is correct, which we would like a second set of eyes o
 
 ```{r}
 
-# Shouldn't percent_start be the percentage of games started/games played (instead of total games the team plays), based on the theory that you can't start a game you don't play in? Seems like otherwise you're even more likely to have seniors dominate the starting percentages. 
-
-# Make this started/games ELIGIBLE (games from seasons they competed in)
-
-games_per_team <- match_all %>% 
+games_per_seasonteam <- match_all %>% 
   group_by(season, team) %>% 
   count()
 
@@ -324,8 +320,8 @@ player_team <- players_all %>%
     str_detect(team, "FDU")~"Fairleigh Dickinson",
     TRUE~institution
   )) %>% 
-  select(season:gs, institution, -gp, -pos, -full_name) %>%
-  left_join(games_per_team, by = c("season", "team")) %>% 
+  select(season:gs, institution, -pos, -full_name) %>%
+  left_join(games_per_seasonteam, by = c("season", "team")) %>% 
   left_join(team_unique, by = "institution") %>% 
   rename(season_games = n)
 
@@ -357,18 +353,52 @@ institution_year <- player_team %>%
   select(institution, conference, Fr, So, Jr, Sr) %>% 
   left_join(team_unique, by = c("institution", "conference"))
 
+start_play <- player_team %>% 
+  group_by(roster_name, institution, yr, conference, season) %>% 
+  summarize(
+    start_play = round(gs/gp*100,2)
+  ) %>% 
+  mutate(start_play = case_when(
+    is.na(start_play)~0,
+    TRUE~start_play
+  )) %>% 
+  group_by(institution, conference, yr) %>% 
+  summarize(
+    starter = mean(start_play)
+  ) %>% 
+  pivot_wider(names_from = "yr", values_from = "starter") %>% 
+  select(institution, conference, Fr, So, Jr, Sr) %>% 
+  left_join(team_unique, by = c("institution", "conference"))
 
 conference_stats <- institution_year %>% 
   group_by(conference) %>% 
   summarize(
-    fr = round(mean(Fr),2),
-    so = round(mean(So),2),
-    jr = round(mean(Jr),2),
-    sr = round(mean(Sr),2),
+    fr_se = round(mean(Fr),2),
+    so_se = round(mean(So),2),
+    jr_se = round(mean(Jr),2),
+    sr_se = round(mean(Sr),2),
     mean_goals = round(mean(avg_goals),2),
-    mean_sos = round(mean(avg_shutouts),2),
     mean_foul = round(mean(avg_fouls),2)
   )
+
+conference_startplay <- start_play %>% 
+  group_by(conference) %>% 
+  summarize(
+    fr_sp = round(mean(Fr),2),
+    so_sp = round(mean(So),2),
+    jr_sp = round(mean(Jr),2),
+    sr_sp = round(mean(Sr),2),
+    mean_goals = round(mean(avg_goals),2),
+    mean_foul = round(mean(avg_fouls),2)
+  )
+
+comp_eligible_played <- conference_stats %>% 
+  left_join(conference_startplay, by = c("conference", "mean_goals", "mean_foul")) %>% 
+  mutate(fr_dif = fr_sp - fr_se) %>% 
+  mutate(so_dif = so_sp - so_se) %>% 
+  mutate(jr_dif = jr_sp - jr_se) %>% 
+  mutate(sr_dif = sr_sp - sr_se) %>% 
+  select(conference, contains("dif"), contains("mean"))
 
 ```
 
