@@ -191,11 +191,52 @@ matches_compares %>%
 summary(lm(matches_compares$win_percent ~ matches_compares$ha_number + matches_compares$goal_rate + matches_compares$score_mean))
 
 ```
-# Question Two:
+# Question Two Original:
 
 Do more popular numbers (attacking players) (10, 11, 9, 7) equate to more goals scored per season?
 
 We wanted to pivot our question 2 because after a lengthy and fruitful discussion, we realized that I was basing my "popular numbers in soccer" on the men's side of soccer, particularly professional. To be honest, culturally, the men's and women's side of soccer are slightly different. So based on (my) experience in women's soccer since I was 3 years old, I would understand how the more popular numbers would be different depending on gender. Also, more men watch professional men's soccer (I'm assuming) - Caroline
+
+```{r}
+# # Specifically collect statistics for any players who have jersey numbers 10, 11, 9, 7, and 23.
+# player_filter <- players_all %>% 
+#   filter(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23) %>% 
+#   select(-full_name, -points, -red_cards:-corners)
+# 
+# # Look at the statistics for players outside of those jersey numbers
+# player_anti <- players_all %>% 
+#   filter(!(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23)) %>% 
+#   select(-full_name, -points, -red_cards:-corners)
+
+# # Get some statistics for each jersey number we like
+# jersey_players <- player_filter %>% 
+#   # Asked Chat GPT: "How do I replace the NA values in every numeric column in a R dataframe with 0?"
+#   mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
+#   group_by(jersey) %>%
+#   summarize(
+#     mean_gp = mean(gp),
+#     mean_goals = mean(goals),
+#     median_goals = median(goals),
+#     goal_shtrat = sum(goals)/sum(sh_att)*100,
+#     mean_fouls = mean(fouls),
+#     pk_success = sum(pk)/sum(pk_att)*100,
+#     gwg = mean(gwg)
+#   )
+# 
+# # Get statistics for all other jersey numbers
+# other_players <- player_anti %>% 
+#   mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
+#   group_by(jersey) %>%
+#   summarize(
+#     mean_gp = mean(gp),
+#     mean_goals = mean(goals),
+#     median_goals = median(goals),
+#     goal_shtrat = sum(goals)/sum(sh_att)*100,
+#     mean_fouls = mean(fouls),
+#     pk_success = sum(pk)/sum(pk_att)*100,
+#     gwg = mean(gwg)
+#   )
+```
 
 # Question Two Revised:
 
@@ -212,6 +253,7 @@ When we take the widest look at the data by jersey numbers, we see a huge drop f
 player_dist <- players_all %>% 
   distinct(roster_name, .keep_all = TRUE)
 
+# Exclude goalkeepers since their statistics seem to skew data a bit
 nongk_player_by_jersey <- player_dist %>% 
   filter(!str_detect(pos, "GK")) %>% 
   group_by(jersey) %>% 
@@ -225,46 +267,7 @@ nongk_player_by_jersey <- player_dist %>%
     mean_fouls = mean(fouls, na.rm = TRUE)
   )
 
-# Specifically collect statistics for any players who have jersey numbers 10, 11, 9, 7, and 23.
-player_filter <- players_all %>% 
-  filter(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23) %>% 
-  select(-full_name, -points, -red_cards:-corners)
-
-# Look at the statistics for players outside of those jersey numbers
-player_anti <- players_all %>% 
-  filter(!(jersey == 10| jersey == 11| jersey == 9| jersey == 7| jersey == 23)) %>% 
-  select(-full_name, -points, -red_cards:-corners)
-
-# Get some statistics for each jersey number we like
-jersey_players <- player_filter %>% 
-  # Asked Chat GPT: "How do I replace the NA values in every numeric column in a R dataframe with 0?"
-  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
-  group_by(jersey) %>%
-  summarize(
-    mean_gp = mean(gp),
-    mean_goals = mean(goals),
-    median_goals = median(goals),
-    goal_shtrat = sum(goals)/sum(sh_att)*100,
-    mean_fouls = mean(fouls),
-    pk_success = sum(pk)/sum(pk_att)*100,
-    gwg = mean(gwg)
-  )
-
-# Get statistics for all other jersey numbers
-other_players <- player_anti %>% 
-  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>% 
-  group_by(jersey) %>%
-  summarize(
-    mean_gp = mean(gp),
-    mean_goals = mean(goals),
-    median_goals = median(goals),
-    goal_shtrat = sum(goals)/sum(sh_att)*100,
-    mean_fouls = mean(fouls),
-    pk_success = sum(pk)/sum(pk_att)*100,
-    gwg = mean(gwg)
-  )
-
-# Create a chart that shows which 
+# Create a chart that shows popular numbers and mean goals
 jersey_chart <- nongk_player_by_jersey %>% 
   ggplot(aes(x = num_players, y = mean_goals)) +
   geom_point(size = 1, shape = 1, color = "black") + 
@@ -276,8 +279,14 @@ jersey_chart <- nongk_player_by_jersey %>%
 
 jersey_chart
 
-player_zero <- player_dist %>% 
-  filter(jersey == 0)
+# Jersey numbers with over 300 distinct players
+over_threehund <- nongk_player_by_jersey %>%
+  filter(num_players >= 300)
+
+# Players who use the jersey numbers mentioned above
+pop_to_names <- over_threehund %>% 
+  inner_join(player_dist, by = "jersey")
+  
 ```
 
 # Question 3:
