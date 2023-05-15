@@ -26,6 +26,8 @@ library(janitor)
 library(dplyr)
 library(ggplot2)
 library(corrr)
+library(ggrepel)
+library(stringr)
 ```
 
 ## Load and Cleaning Data
@@ -48,8 +50,20 @@ wsoccer_teams_2021 <- read_csv("url_csvs/NCAA Women's Soccer - 2021.csv") %>%
 wsoccer_teams_2022 <- read_csv("url_csvs/NCAA Women's Soccer - 2022.csv") %>% 
   clean_names()
 
+team_links_2020 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2020.csv") %>% 
+  clean_names()
+team_links_2021 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2021.csv") %>% 
+  clean_names()
+team_links_2022 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2022.csv") %>% 
+  clean_names()
+
+team_links <- team_links_2020 %>% 
+  rbind(team_links_2021, team_links_2022) %>% 
+  distinct(school, .keep_all = TRUE) %>% 
+  mutate(team_number = str_extract(playerstatsurl, "(?<=team/).*?(?=/stats)"))
+
 # Find the column names, create a key
-col_names <- colnames(wsoccer_matchstat_2020)
+# col_names <- colnames(wsoccer_matchstat_2020)
 # Data Dictionary: https://docs.google.com/spreadsheets/d/1lnEauTJ62LcCfWJdwIHUitD6Hai_-1YCDVsEbwiTSG8/edit#gid=0
 
 # Clean 2020 match data so that we can rbind()
@@ -74,41 +88,81 @@ match_all <- match_20 %>%
     home_away == "Home"~ 0,
     home_away == "Away"~ 1,
     TRUE ~ NA
+  )) %>% 
+  mutate(team = case_when(
+    team == "FDU Knights"~"Fairleigh Dickinson Knights",
+    TRUE~team
   ))
 
 # Clean 2021 team data so that we can rbind()
 teams_21 <- wsoccer_teams_2021 %>% 
-  select(-so_g, -gwg, -games)
+  select(-so_g, -gwg, -games) %>% 
+  mutate(season = 2021) 
 
 # Clean 2022 team data so that we can rbind()
 teams_22 <- wsoccer_teams_2022 %>% 
-  select(-so_g, -gwg, -games)
+  select(-so_g, -gwg, -games) %>% 
+  mutate(season = 2022) 
 
 # Clean 2020 team data so that we can rbind()
-cols_20 <- names(wsoccer_teams_2020)
+# cols_20 <- names(wsoccer_teams_2020)
 
 teams_20 <- wsoccer_teams_2020 %>% 
-  select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att)
+  select(url, institution, conference, goals, assists, -points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, saves, shutouts, combined_sho, g_wins, g_loss, d_saves, corners, pk, pk_att) %>% 
+  mutate(season = 2020)
 
 # Clean 2020 player data so that we can rbind()
 players_20 <- wsoccer_playerstat_2020 %>% 
-  select(season, team, jersey, full_name, roster_name, first_name, last_name, yr, pos, gp, gs, goals, assists, points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, gaa, saves, sv_pct, combined_sho, shutouts, g_wins, g_loss, d_saves, corners, pk, pk_att, gwg)
+  select(season, team, jersey, full_name, roster_name, first_name, last_name, yr, pos, gp, gs, goals, assists, points, sh_att, fouls, red_cards, yellow_cards, gc, goal_app, ggs, goalie_min_plyd, ga, gaa, saves, sv_pct, combined_sho, shutouts, g_wins, g_loss, d_saves, corners, pk, pk_att, gwg) %>% 
+  mutate(season = 2020) 
 
 # Clean 2021 player data so that we can rbind()
 players_21 <- wsoccer_playerstat_2021 %>% 
-  select(-so_g, -games)
+  select(-so_g, -games) %>% 
+  mutate(season = 2021) 
 
 # Clean 2022 player data so that we can rbind()
 players_22 <- wsoccer_playerstat_2022 %>% 
-  select(-so_g, -games)
+  select(-so_g, -games) %>% 
+  mutate(season = 2022) 
 
 # All players across three seasons
 players_all <- players_20 %>% 
-  rbind(players_21, players_22)
+  rbind(players_21, players_22) %>% 
+  mutate(team = case_when(
+    team == "FDU Knights"~"Fairleigh Dickinson Knights",
+    TRUE~team
+  ))
 
 # All teams across three seasons
 all_teams <- teams_20 %>% 
- rbind(teams_21, teams_22)
+ rbind(teams_21, teams_22) %>% 
+  mutate(institution = case_when(
+    institution == "Albany (NY)"~"UAlbany",
+    institution == "Dixie St."~"Utah Tech",
+    TRUE~institution
+  ))
+
+regex_unis <- regex(paste0("\\b", paste(unique(all_teams$institution), collapse = "\\b|\\b"), "\\b"))
+
+mascot_crosswalk <- players_all %>% 
+  distinct(team) %>% 
+  mutate(mascot = str_squish(sub(regex_unis, "", team)))
+
+team_crosswalk <- all_teams %>%
+  mutate(team_number = str_extract(url, "(?<=team/).*?(?=/)")) %>% 
+  distinct(institution, conference, season, .keep_all = TRUE) %>% 
+  left_join(team_links, by = "team_number") %>% 
+  left_join(mascot_crosswalk, by = c("school" = "team")) %>% 
+  select(institution, mascot, school, conference, season) %>% 
+  rename(team = school) %>% 
+    mutate(mascot = case_when(
+    institution == "VMI"~"Cadets",
+    TRUE~mascot
+  )) %>% 
+  filter(!is.na(mascot))
+
+  
 ```
 
 # Question One:
@@ -167,7 +221,6 @@ matches_compares <- match_all %>%
 boxplot(matches_compares$win_percent ~ matches_compares$home_away)
 boxplot(matches_compares$all_yellow ~ matches_compares$home_away)
 boxplot(matches_compares$foul_mean ~ matches_compares$home_away)
-
 
 # Separate dataframes into data by home and away games
 teams_home <- matches_compares %>% 
@@ -311,29 +364,14 @@ team_unique <- all_teams %>%
     avg_shutouts = round(mean(shutouts),2),
     avg_fouls = round(mean(fouls),2)
   ) %>% 
-  distinct(institution, .keep_all = TRUE)
+  distinct(institution, conference, .keep_all = TRUE) %>% 
+  left_join(team_crosswalk, by = c("institution", "conference"))
 
-regex_unis <- regex(paste(unique(all_teams$institution), collapse = "|"))
-
-player_team <- players_all %>% 
-  mutate(institution = str_extract(team, regex_unis)) %>% 
-  mutate(institution = case_when(
-    str_detect(team, "LMU \\(CA\\)")~"LMU (CA)",
-    str_detect(team, "Miami \\(FL\\)")~"Miami (FL)",
-    str_detect(team, "Miami \\(OH\\)")~"Miami (OH)",
-    str_detect(team, "Queens \\(NC\\)")~"Queens (NC)",
-    str_detect(team, "Saint Francis \\(PA\\)")~"Saint Francis (PA)",
-    str_detect(team, "Saint Mary's \\(CA\\)")~"Saint Mary's (CA)",
-    str_detect(team, "St. John's \\(NY\\)")~"St. John's (NY)",
-    str_detect(team, "St. Thomas \\(MN\\)")~"St. Thomas (MN)",
-    str_detect(team, "FDU")~"Fairleigh Dickinson",
-    TRUE~institution
-  )) %>% 
-  select(season:gs, institution, -pos, -full_name) %>%
+player_team <- players_all %>%
+  select(season:gs, team, -pos, -full_name) %>%
   left_join(games_per_seasonteam, by = c("season", "team")) %>% 
-  left_join(team_unique, by = "institution") %>% 
+  left_join(team_unique, by = c("season", "team")) %>% 
   rename(season_games = n)
-
 
 player_by_year <- player_team %>% 
   group_by(roster_name, institution, yr, conference, season) %>% 
@@ -426,39 +464,33 @@ It looks like goals may matter more, but it's hard to separate teams with most g
 
 team_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
-  group_by(team, outcome) %>% 
+  group_by(team, outcome, season) %>% 
   count() %>% 
   pivot_wider(names_from = outcome, values_from = n) %>% 
   replace(is.na(.), 0) %>% 
   # Create a column that has the Win-Loss-Draw ratio for the teams across all seasons
   mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
   # Create a column that shows the win percentage for home vs away games across all seasons
-  mutate(win_percent = Win/(Win+Loss+Draw)*100)
+  mutate(win_percent = Win/(Win+Loss+Draw)*100) %>% 
+  left_join(team_crosswalk, by = c("team", "season"))
 
 matches_od <- match_all %>%
-  group_by(team) %>% 
+  group_by(team, season) %>%
   summarize(
     tot_shut = sum(shutouts),
     avg_shut = mean(shutouts),
     tot_goals = sum(goals),
     avg_goals = mean(goals)
   ) %>% 
-  left_join(team_wld, by = "team")
+  left_join(team_wld, by = c("team", "season"))
 
-hist(matches_od$win_percent ~ matches_od$avg_goals)
-  
-top_shut <- matches_od %>% 
-  arrange(desc(avg_shut)) %>% 
-  head(100)
-  
-top_goals <- matches_od %>% 
-  arrange(desc(avg_goals)) %>% 
-  head(100)
+match_avg <- matches_od %>% 
+  ungroup() %>% 
+  summarise(
+    goal_avg = mean(avg_goals), 
+    shut_avg = mean(avg_shut)
+    )
 
-boxplot(top_shut$win_percent)
-boxplot(top_goals$win_percent)
-
-# team_goals <- team_unique %>%
   
 ```
 
