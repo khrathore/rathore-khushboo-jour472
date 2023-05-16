@@ -481,22 +481,21 @@ team_wld <- match_all %>%
   count() %>% 
   pivot_wider(names_from = outcome, values_from = n) %>% 
   replace(is.na(.), 0) %>% 
-  # Create a column that has the Win-Loss-Draw ratio for the teams across all seasons
-  mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
-  # Create a column that shows the win percentage for home vs away games across all seasons
-  mutate(win_percent = Win/(Win+Loss+Draw)*100) %>% 
-  left_join(tc_season, by = c("team", "season"))
+  left_join(tc_season, by = c("team", "season")) %>% 
+  clean_names()
 
 matches_od <- match_all %>%
-  group_by(team, season) %>%
+  left_join(tc_season, by = c("team", "season")) %>% 
+  left_join(team_wld, by = c("team", "season", "conference", "institution", "mascot")) %>% 
+  group_by(team, conference) %>% 
   summarize(
     tot_shut = sum(shutouts),
     avg_shut = mean(shutouts),
     tot_goals = sum(goals),
-    avg_goals = mean(goals)
-  ) %>% 
-  left_join(team_wld, by = c("team", "season"))
-
+    avg_goals = mean(goals),
+    win_percent = round(sum(win)/(sum(win)+sum(loss)+sum(draw))*100, 2)
+  )
+  
 match_avg <- matches_od %>% 
   ungroup() %>% 
   summarise(
@@ -554,12 +553,47 @@ aac_chart <- stats_aac %>%
   scale_size(range = c(1, 8), name="Win Percent") +
   geom_vline(xintercept = all_conf$goal_avg[1]) + 
   geom_hline(yintercept = all_conf$shut_avg[1]) +
+  geom_text_repel(
+    aes(x=avg_goals, y=avg_shut, label=paste(team, "-", win_percent))
+  ) +
   labs(
     x = "Mean Goals",
     y = "Mean Shutouts"
   )
   
 aac_chart
+
+
+all_teams <- matches_od %>% 
+  ggplot +
+    geom_point(
+      aes(x = avg_goals, y = avg_shut, size = win_percent),
+      alpha = .5
+      ) +
+  geom_point(
+    data=top_shut_nogoals, 
+    aes(x = avg_goals, y = avg_shut, size = win_percent), 
+    color="red",
+    alpha = .5
+    ) + 
+  geom_point(
+    data=top_goal_noshut, 
+    aes(x = avg_goals, y = avg_shut, size = win_percent), 
+    color="blue",
+    alpha = .5
+    ) + 
+  scale_size(range = c(1, 8), name="Win Percent") +
+  geom_vline(xintercept = match_avg$goal_avg) + 
+  geom_hline(yintercept = match_avg$shut_avg) +
+  geom_text_repel(
+    aes(x=avg_goals, y=avg_shut, label=paste(team, "-", win_percent))
+  ) +
+  labs(
+    x = "Mean Goals",
+    y = "Mean Shutouts"
+  )
+
+all_teams
 ```
 
 
