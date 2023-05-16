@@ -57,6 +57,7 @@ team_links_2021 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2021.csv") %>%
 team_links_2022 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2022.csv") %>% 
   clean_names()
 
+# Create a column for the team number taken from the link
 team_links <- team_links_2020 %>% 
   rbind(team_links_2021, team_links_2022) %>% 
   distinct(school, .keep_all = TRUE) %>% 
@@ -91,6 +92,7 @@ match_all <- match_20 %>%
   )) %>% 
   mutate(team = case_when(
     team == "FDU Knights"~"Fairleigh Dickinson Knights",
+    team == "Kansas City Roos"~"Kansas City Kangaroos",
     TRUE~team
   ))
 
@@ -131,6 +133,7 @@ players_all <- players_20 %>%
   rbind(players_21, players_22) %>% 
   mutate(team = case_when(
     team == "FDU Knights"~"Fairleigh Dickinson Knights",
+    team == "Kansas City Roos"~"Kansas City Kangaroos",
     TRUE~team
   ))
 
@@ -143,12 +146,15 @@ all_teams <- teams_20 %>%
     TRUE~institution
   ))
 
+# Regular expression of universities
 regex_unis <- regex(paste0("\\b", paste(unique(all_teams$institution), collapse = "\\b|\\b"), "\\b"))
 
+# Crosswalk of team name to mascot
 mascot_crosswalk <- players_all %>% 
   distinct(team) %>% 
   mutate(mascot = str_squish(sub(regex_unis, "", team)))
 
+# Crosswalk of team name, institution, mascot, conference
 team_crosswalk <- all_teams %>%
   mutate(team_number = str_extract(url, "(?<=team/).*?(?=/)")) %>% 
   distinct(institution, conference, season, .keep_all = TRUE) %>% 
@@ -162,8 +168,10 @@ team_crosswalk <- all_teams %>%
   )) %>% 
   filter(!is.na(mascot))
 
+# Previous crosswalk with seasons
 tc_season <- team_crosswalk %>% 
-  left_join(all_teams) %>% 
+  inner_join(all_teams, by = c("institution", "conference")) %>% 
+  distinct(institution, conference, season, .keep_all = TRUE) %>% 
   select(institution:conference, season)
 ```
 
@@ -305,8 +313,9 @@ When we take the widest look at the data by jersey numbers, we see a huge drop f
 
 # Your work here left me wondering what the distribution is like for all numbers - in other words, whether your choice of popular numbers (23, for example, doesn't seem to be massively popular compared to some others). I'd encourage you to start broad and then narrow down your focus based on your findings and theories.
 
+# Dataframe of all players, only once per their jersey number
 player_dist <- players_all %>% 
-  distinct(roster_name, .keep_all = TRUE)
+  distinct(roster_name, jersey, .keep_all = TRUE)
 
 # Exclude goalkeepers since their statistics seem to skew data a bit
 nongk_player_by_jersey <- player_dist %>% 
@@ -365,13 +374,13 @@ team_unique <- all_teams %>%
     avg_shutouts = round(mean(shutouts),2),
     avg_fouls = round(mean(fouls),2)
   ) %>% 
-  distinct(institution, conference, .keep_all = TRUE) %>% 
-  inner_join(tc_season, by = c("institution", "conference"))
-
+  inner_join(tc_season, by = c("institution", "conference")) %>% 
+  distinct(institution, conference, season, .keep_all = TRUE)
+  
 player_team <- players_all %>%
   select(season:gs, team, -pos, -full_name) %>%
   left_join(games_per_seasonteam, by = c("season", "team")) %>% 
-  left_join(team_unique, by = c("season", "team")) %>% 
+  left_join(team_unique, by = c("team", "season")) %>% 
   rename(season_games = n)
 
 player_by_year <- player_team %>% 
@@ -475,7 +484,7 @@ team_wld <- match_all %>%
   mutate(wld_ratio = paste0(Win, "-", Loss, "-",Draw)) %>% 
   # Create a column that shows the win percentage for home vs away games across all seasons
   mutate(win_percent = Win/(Win+Loss+Draw)*100) %>% 
-  left_join(team_crosswalk, by = c("team", "season"))
+  left_join(tc_season, by = c("team", "season"))
 
 matches_od <- match_all %>%
   group_by(team, season) %>%
@@ -494,7 +503,32 @@ match_avg <- matches_od %>%
     shut_avg = mean(avg_shut)
     )
 
+all_conf <- matches_od %>% 
+  group_by(conference) %>% 
+  summarise(
+    goal_avg = mean(avg_goals), 
+    shut_avg = mean(avg_shut)
+    ) %>% 
+  arrange(conference)
+
+stats_aac <- matches_od %>% 
+  filter(conference == "AAC")
+
+aac_chart <- stats_aac %>% 
+  ggplot +
+    geom_point(
+      aes(x = avg_goals, y = avg_shut, size = win_percent),
+      alpha = .5
+      ) +
+  scale_size(range = c(1, 8), name="Win Percent") +
+  geom_vline(xintercept = all_conf$goal_avg[1]) + 
+  geom_hline(yintercept = all_conf$shut_avg[1]) +
+  labs(
+    x = "Mean Goals",
+    y = "Mean Shutouts"
+  )
   
+aac_chart
 ```
 
 
