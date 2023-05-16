@@ -154,7 +154,7 @@ team_crosswalk <- all_teams %>%
   distinct(institution, conference, season, .keep_all = TRUE) %>% 
   left_join(team_links, by = "team_number") %>% 
   left_join(mascot_crosswalk, by = c("school" = "team")) %>% 
-  select(institution, mascot, school, conference, season) %>% 
+  select(institution, mascot, school, conference) %>% 
   rename(team = school) %>% 
     mutate(mascot = case_when(
     institution == "VMI"~"Cadets",
@@ -162,7 +162,9 @@ team_crosswalk <- all_teams %>%
   )) %>% 
   filter(!is.na(mascot))
 
-  
+tc_season <- team_crosswalk %>% 
+  left_join(all_teams) %>% 
+  select(institution:conference, season)
 ```
 
 # Question One:
@@ -325,7 +327,6 @@ jersey_chart <- nongk_player_by_jersey %>%
   ggplot(aes(x = num_players, y = mean_goals)) +
   geom_point(size = 1, shape = 1, color = "black") + 
   labs(
-    title = "Higher Jersey Numbers Are More of a Threat Near Goal",
     x = "Number of Players",
     y = "Mean Goals"
   )
@@ -365,7 +366,7 @@ team_unique <- all_teams %>%
     avg_fouls = round(mean(fouls),2)
   ) %>% 
   distinct(institution, conference, .keep_all = TRUE) %>% 
-  left_join(team_crosswalk, by = c("institution", "conference"))
+  inner_join(tc_season, by = c("institution", "conference"))
 
 player_team <- players_all %>%
   select(season:gs, team, -pos, -full_name) %>%
@@ -415,7 +416,9 @@ start_play <- player_team %>%
   ) %>% 
   pivot_wider(names_from = "yr", values_from = "starter") %>% 
   select(institution, conference, Fr, So, Jr, Sr) %>% 
-  left_join(team_unique, by = c("institution", "conference"))
+  left_join(team_unique, by = c("institution", "conference")) %>% 
+  group_by(institution, conference)
+  
 
 conference_stats <- institution_year %>% 
   group_by(conference) %>% 
