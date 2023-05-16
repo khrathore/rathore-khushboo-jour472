@@ -307,7 +307,8 @@ Is there a significant relationship in performance and jersey number? Why are ce
 
 # Answer: 
 
-When we take the widest look at the data by jersey numbers, we see a huge drop from 160 players to only 80 between the 35th and 36th most popular number. The most popular number that does well 
+If we define success or positive performance in women's college soccer as goals scored and the amount of game winning goals scored, we can look at the means for both of those statistics and see that the number 10 is first for popularity, mean_goals and mean_gwg. According to https://yoursoccerhome.com/the-number-10-in-soccer-why-its-so-significant/ , the number 10 is typically worn by an attacking midfielder/forward. Out of 380 players in the pop_to_names dataframe, there are only 41 players labeled as defenders wearing the number 10. That means the majority of players wearing #10 are forwards and midfielders. According to yoursoccerhome, starting in England in 1928, numbers were used to identify players on the field, and the numbers 1-11 were used. Each position had a number. For example, 1 was a goalkeeper, 2-5 was the backline, 6 8 and 10 were the midfielders, and 7, 9, and 11 were attacking players. Nowadays, those numbers aren't limited to positions, but the association still exists and coaches will reinforce those position numbers by teaching their players the positions using those numbers. They will use those numbers during film, while teaching tactics etc. Though the origins come from identifying certain players, the number 10 became less of a method of identification and more of a recognition of a certain player as time went on. The role of number 10 was to be a "playmaker." Players such as Messi, Diego Maradona, Carli Lloyd, Marta and Pele are all well known footballers that wore/wear these numbers.  In women's soccer, Carli Lloyd and Marta were iconic playmakers who were creative, tactically gifted and continuously put the ball in the back of the net. 
+
 
 ```{r}
 
@@ -503,6 +504,24 @@ match_avg <- matches_od %>%
     shut_avg = mean(avg_shut)
     )
 
+top_shut <- matches_od %>% 
+  arrange(desc(avg_shut)) %>% 
+  head(100)
+  
+top_goals <- matches_od %>% 
+  arrange(desc(avg_goals)) %>% 
+  head(100)
+
+top_shut_nogoals <- matches_od %>% 
+  anti_join(top_goals) %>% 
+  arrange(desc(avg_shut)) %>% 
+  head(100)
+
+top_goal_noshut <- matches_od %>% 
+  anti_join(top_shut) %>% 
+  arrange(desc(avg_goals)) %>% 
+  head(100)
+
 all_conf <- matches_od %>% 
   group_by(conference) %>% 
   summarise(
@@ -520,6 +539,18 @@ aac_chart <- stats_aac %>%
       aes(x = avg_goals, y = avg_shut, size = win_percent),
       alpha = .5
       ) +
+  geom_point(
+    data=inner_join(stats_aac, top_shut_nogoals), 
+    aes(x = avg_goals, y = avg_shut, size = win_percent), 
+    color="red",
+    alpha = .5
+    ) + 
+  geom_point(
+    data=inner_join(stats_aac, top_goal_noshut), 
+    aes(x = avg_goals, y = avg_shut, size = win_percent), 
+    color="blue",
+    alpha = .5
+    ) + 
   scale_size(range = c(1, 8), name="Win Percent") +
   geom_vline(xintercept = all_conf$goal_avg[1]) + 
   geom_hline(yintercept = all_conf$shut_avg[1]) +
@@ -565,25 +596,10 @@ team_sums <- all_teams %>%
   ) %>% 
   distinct(institution, .keep_all = TRUE)
 
-regex_unis <- regex(paste(unique(all_teams$institution), collapse = "|"))
 regex_peoplemascot <- regex("governors|braves|mountaineers|duke|knights|matadors|chippewas|buccaneers|49ers|vikings|raiders|flyers|pioneers|pirates|islanders|colonels|seminoles|paladins|colonials|crusaders|vandals|explorers|trojans|techsters|jaspers|minutewomen|cowgirls|warriors|spartans|racers|highlanders|midshipmen|cornhuskers|huskers|lumberjacks|norse|irish|rebels|quakers|pilots|friars|boilermakers|royals|ladyjacks|aztecs|toreros|dons|saints|hatters|texas|volunteers|cadets|gauchos|miners|vaqueros|trailblazers|cadets|commodores|cavaliers|musketeers|lancer|gael|beacon")
 
 mascot_list <- match_all %>% 
-  mutate(institution = str_extract(team, regex_unis)) %>% 
-  ## Asked CHATGPT: "How do I extract everything after a certain pattern in R?"
-  mutate(mascot = str_squish(sub(regex_unis, "", team))) %>% 
-  mutate(institution = case_when(
-    str_detect(team, "LMU \\(CA\\)")~"LMU (CA)",
-    str_detect(team, "Miami \\(FL\\)")~"Miami (FL)",
-    str_detect(team, "Miami \\(OH\\)")~"Miami (OH)",
-    str_detect(team, "Queens \\(NC\\)")~"Queens (NC)",
-    str_detect(team, "Saint Francis \\(PA\\)")~"Saint Francis (PA)",
-    str_detect(team, "Saint Mary's \\(CA\\)")~"Saint Mary's (CA)",
-    str_detect(team, "St. John's \\(NY\\)")~"St. John's (NY)",
-    str_detect(team, "St. Thomas \\(MN\\)")~"St. Thomas (MN)",
-    str_detect(team, "FDU")~"Fairleigh Dickinson",
-    TRUE~institution
-  )) %>% 
+  left_join(tc_season, by = c("team", "season")) %>% 
   group_by(team, mascot, institution) %>% 
   summarize(
     tot_yc = sum(yellow_cards)
