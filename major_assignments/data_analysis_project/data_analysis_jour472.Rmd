@@ -709,7 +709,7 @@ mascot_list <- match_all %>%
   replace(is.na(.), 0) 
 
 mascot_matches <- mascot_list %>% 
-  right_join(match_all, by = "team")
+  inner_join(match_all, by = "team")
   
 
 by_mascot <- mascot_list %>% 
