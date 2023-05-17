@@ -359,7 +359,6 @@ Upperclassmen vs Underclassmen: what years typically dominate the starting lineu
 
 # Answer:
 
-If the logic of this code is correct, which we would like a second set of eyes on, it seems like the highest performing conferences had majority seniors. However, the AAC has a relatively even distribution in their players. Only one conference had more than half of their freshman playing, but they are made up of non-conference teams (it's weird).
 
 
 ```{r}
@@ -468,13 +467,10 @@ Team with the most shutouts vs team with most goals scored: which team is more s
 
 # Answer:
 
-For the team that has the most shutouts versus goals scored, it would be interesting to see if it depends on how the goal is scored. Though we don’t have access to that information, we think it would be so cool to get data on whether it is a defensive error (which could be up to interpretation) or a true well orchestrated attack that leads to a goal. Though some goals could fall in both categories, we think that that could affect how one looks at the “goal scored” category. 
+Obviously, teams that have a high mean shutouts and a high mean goals
 
-It looks like goals may matter more, but it's hard to separate teams with most goals and shutouts because they tend to be a similar list.
 
 ```{r}
-# I think another way of asking this question could be this: "Do teams that record the most shutouts really need to do so because they are not high-scoring teams?" As you've found there are plenty of high-scoring teams that record shutouts; are there low-scoring teams that do the same consistently? Would speak to style of play.
-
 team_wld <- match_all %>% 
   # Group games by home/away and win-loss-draw for each team
   group_by(team, outcome, season) %>% 
@@ -505,95 +501,151 @@ match_avg <- matches_od %>%
 
 top_shut <- matches_od %>% 
   arrange(desc(avg_shut)) %>% 
-  head(100)
+  head(100) %>% 
+  mutate(status = "shutouts")
   
 top_goals <- matches_od %>% 
   arrange(desc(avg_goals)) %>% 
-  head(100)
+  head(100) %>% 
+  mutate(status = "goals")
 
 top_shut_nogoals <- matches_od %>% 
   anti_join(top_goals) %>% 
   arrange(desc(avg_shut)) %>% 
-  head(100)
+  head(100) %>% 
+  mutate(status = "shutouts_not_goals")
 
 top_goal_noshut <- matches_od %>% 
   anti_join(top_shut) %>% 
   arrange(desc(avg_goals)) %>% 
-  head(100)
+  head(100) %>% 
+  mutate(status = "goals_not_shutouts")
 
-all_conf <- matches_od %>% 
-  group_by(conference) %>% 
+pfive_avg <- matches_od %>%
+  filter(str_detect(conference, "ACC|SEC|Big Ten|Big 12|Pac-12")) %>% 
+  mutate(pfive = "yes") %>% 
+  group_by(pfive) %>% 
   summarise(
     goal_avg = mean(avg_goals), 
     shut_avg = mean(avg_shut)
-    ) %>% 
-  arrange(conference)
+    )
 
-stats_aac <- matches_od %>% 
-  filter(conference == "AAC")
+stats_pfive <- matches_od %>% 
+  filter(str_detect(conference, "ACC|SEC|Big Ten|Big 12|Pac-12"))
 
-aac_chart <- stats_aac %>% 
+pfive_chart <- stats_pfive %>% 
   ggplot +
     geom_point(
-      aes(x = avg_goals, y = avg_shut, size = win_percent),
+      aes(x = avg_goals, y = avg_shut, size = win_percent, color = conference),
       alpha = .5
       ) +
-  geom_point(
-    data=inner_join(stats_aac, top_shut_nogoals), 
-    aes(x = avg_goals, y = avg_shut, size = win_percent), 
-    color="red",
-    alpha = .5
-    ) + 
-  geom_point(
-    data=inner_join(stats_aac, top_goal_noshut), 
-    aes(x = avg_goals, y = avg_shut, size = win_percent), 
-    color="blue",
-    alpha = .5
-    ) + 
+  # geom_point(
+  #   data=inner_join(stats_pfive, top_shut_nogoals), 
+  #   aes(x = avg_goals, y = avg_shut, size = win_percent), 
+  #   color="red",
+  #   alpha = .5
+  #   ) + 
+  # geom_point(
+  #   data=inner_join(stats_pfive, top_goal_noshut), 
+  #   aes(x = avg_goals, y = avg_shut, size = win_percent, color), 
+  #   color="blue",
+  #   alpha = .5
+  #   ) + 
   scale_size(range = c(1, 8), name="Win Percent") +
-  geom_vline(xintercept = all_conf$goal_avg[1]) + 
-  geom_hline(yintercept = all_conf$shut_avg[1]) +
-  geom_text_repel(
-    aes(x=avg_goals, y=avg_shut, label=paste(team, "-", win_percent))
-  ) +
+  geom_vline(xintercept = pfive_avg$goal_avg) + 
+  geom_hline(yintercept = pfive_avg$shut_avg) +
   labs(
+    title = "In Power 5 women's soccer, goals are more important than shutouts",
     x = "Mean Goals",
     y = "Mean Shutouts"
   )
   
-aac_chart
+pfive_chart
 
+### DID NOT SHOW SUPER RELEVANT INFO COMPARED TO ALL_TEAMS ###
 
-all_teams <- matches_od %>% 
+# not_pfive <- matches_od %>%
+#   filter(!str_detect(conference, "ACC|SEC|Big Ten|Big 12|Pac-12")) %>% 
+#   mutate(pfive = "no") %>% 
+#   group_by(pfive) %>% 
+#   summarise(
+#     goal_avg = mean(avg_goals), 
+#     shut_avg = mean(avg_shut)
+#     )
+# 
+# stats_npfive <- matches_od %>% 
+#   filter(!str_detect(conference, "ACC|SEC|Big Ten|Big 12|Pac-12"))
+# 
+# 
+# npfive_chart <- stats_npfive %>% 
+#   ggplot +
+#     geom_point(
+#       aes(x = avg_goals, y = avg_shut, size = win_percent, color = conference),
+#       alpha = .5
+#       ) +
+#   # geom_point(
+#   #   data=inner_join(stats_pfive, top_shut_nogoals), 
+#   #   aes(x = avg_goals, y = avg_shut, size = win_percent), 
+#   #   color="red",
+#   #   alpha = .5
+#   #   ) + 
+#   # geom_point(
+#   #   data=inner_join(stats_pfive, top_goal_noshut), 
+#   #   aes(x = avg_goals, y = avg_shut, size = win_percent, color), 
+#   #   color="blue",
+#   #   alpha = .5
+#   #   ) + 
+#   scale_size(range = c(1, 8), name="Win Percent") +
+#   geom_vline(xintercept = not_pfive$goal_avg) + 
+#   geom_hline(yintercept = not_pfive$shut_avg) +
+#   labs(
+#     x = "Mean Goals",
+#     y = "Mean Shutouts"
+#   )
+# 
+# npfive_chart
+
+all_team_wstatus <- matches_od %>% 
+  left_join(top_shut_nogoals) %>% 
+  left_join(top_goal_noshut, by = c("team", "conference", "tot_shut", "avg_shut", "avg_goals", "tot_goals", "win_percent")) %>% 
+  mutate(status = case_when(
+    !is.na(status.x) & !is.na(status.y)~"Avg Goals, Avg Shutouts",
+    !is.na(status.x)~"Low Goals, High Shutouts",
+    !is.na(status.y)~"High Goals, Low Shutouts",
+    avg_goals > 1.5~"High Goals, High Shutouts",
+    TRUE~"Low Goals, Low Shutouts"
+  )) %>% 
+  select(-status.y, -status.x)
+
+all_team_chart <- all_team_wstatus %>% 
   ggplot +
     geom_point(
-      aes(x = avg_goals, y = avg_shut, size = win_percent),
-      alpha = .5
+      aes(x = avg_goals, y = avg_shut, size = win_percent, color = status),
+      alpha = .7
       ) +
-  geom_point(
-    data=top_shut_nogoals, 
-    aes(x = avg_goals, y = avg_shut, size = win_percent), 
-    color="red",
-    alpha = .5
-    ) + 
-  geom_point(
-    data=top_goal_noshut, 
-    aes(x = avg_goals, y = avg_shut, size = win_percent), 
-    color="blue",
-    alpha = .5
-    ) + 
+  # geom_point(
+  #   data=top_shut_nogoals, 
+  #   aes(x = avg_goals, y = avg_shut, size = win_percent), 
+  #   color= "lightblue",
+  #   alpha = .9
+  #   ) + 
+  # geom_point(
+  #   data=top_goal_noshut, 
+  #   aes(x = avg_goals, y = avg_shut, size = win_percent), 
+  #   color= "orange",
+  #   alpha = .5
+  #   ) +
   scale_size(range = c(1, 8), name="Win Percent") +
   geom_vline(xintercept = match_avg$goal_avg) + 
   geom_hline(yintercept = match_avg$shut_avg) +
-  geom_text_repel(
-    aes(x=avg_goals, y=avg_shut, label=paste(team, "-", win_percent))
-  ) +
   labs(
+    title = "Across Division I women's soccer teams, win percent is more related to mean goals",
     x = "Mean Goals",
     y = "Mean Shutouts"
   )
 
-all_teams
+
+all_team_chart
 ```
 
 
@@ -670,5 +722,7 @@ boxplot(mascot_list$tot_shutouts ~ mascot_list$mas_category)
 - 2020 had only some conferences playing matches since it was during COVID, also fewer players so some may have redshirted, opted-out, etc.
 - Matches are not classified at playoff games or normal games, so we would need to check the dates.
 - No game count or shots on goal data for 2020 players, not sure if this was a scrape problem or something else.
+- Data in Question 4 was divided by conference and team. If teams changed conferences, especially when moving up to a harder one, they have two datapoints in the chart, and one is often extremely small.
+- Due to various lacks of standardization, some answers may not be completely accurate. We tried our best to standardize everything, but it is possible that we missed something.
 
 
