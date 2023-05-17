@@ -61,7 +61,7 @@ team_links_2022 <- read_csv("url_csvs/ncaa_womens_soccer_teamurls_2022.csv") %>%
 team_links <- team_links_2020 %>% 
   rbind(team_links_2021, team_links_2022) %>% 
   distinct(school, .keep_all = TRUE) %>% 
-  mutate(team_number = str_extract(playerstatsurl, "(?<=team/).*?(?=/stats)"))
+  mutate(team_id = str_extract(playerstatsurl, "(?<=team/).*?(?=/stats)"))
 
 # Find the column names, create a key
 # col_names <- colnames(wsoccer_matchstat_2020)
@@ -160,11 +160,11 @@ mascot_crosswalk <- players_all %>%
 
 # Crosswalk of team name, institution, mascot, conference
 team_crosswalk <- all_teams %>%
-  mutate(team_number = str_extract(url, "(?<=team/).*?(?=/)")) %>% 
+  mutate(team_id = str_extract(url, "(?<=team/).*?(?=/)")) %>% 
   distinct(institution, conference, season, .keep_all = TRUE) %>% 
-  left_join(team_links, by = "team_number") %>% 
+  left_join(team_links, by = "team_id") %>% 
   left_join(mascot_crosswalk, by = c("school" = "team")) %>% 
-  select(institution, mascot, school, conference) %>% 
+  select(institution, mascot, school, conference, team_id) %>% 
   rename(team = school) %>% 
     mutate(mascot = case_when(
     institution == "VMI"~"Cadets",
@@ -176,7 +176,7 @@ team_crosswalk <- all_teams %>%
 tc_season <- team_crosswalk %>% 
   inner_join(all_teams, by = c("institution", "conference")) %>% 
   distinct(institution, conference, season, .keep_all = TRUE) %>% 
-  select(institution:conference, season)
+  select(institution:team_id, season)
 ```
 
 # Question One:
@@ -458,6 +458,8 @@ conference_startplay <- start_play %>%
     mean_foul = round(mean(avg_fouls),2)
   )
 
+boxplot(conference_startplay$mean_goals ~ conference_startplay$fr_sp)
+
 comp_eligible_played <- conference_stats %>% 
   left_join(conference_startplay, by = c("conference", "mean_goals", "mean_foul")) %>% 
   mutate(fr_dif = fr_sp - fr_se) %>% 
@@ -475,6 +477,10 @@ Team with the most shutouts vs team with most goals scored: which team is more s
 # Answer:
 
 Obviously, teams that have a high mean shutouts and a high mean goals have a higher win percentage. Once we start to take a closer look and separate the teams out into multiple categories based on their shutouts and goals, we start to see a distinction between the impact of shutouts and goals on winning. 
+
+We looked specifically at Power 5 Schools, which is made up of schools that are in either the ACC, SEC, Big 10, Big 12 or Pac-12. In our graphic, we plotted the means of the average goals and average shutouts across the power 5. When we look at teams who perform above average on shutouts and below on goals as compared to teams who perform below average on shutouts and above on goals, we can see that the second case tends to have a higher win percent.
+
+Similarly, when looking at all teams (keeping in mind that teams in multiple conferences over the three years have multiple points), we see a similar trend. Teams needed to get shutouts for over half their matches to have a comparable win percent to teams scoring two goals a match. 
 
 
 ```{r}
@@ -710,7 +716,6 @@ mascot_list <- match_all %>%
 
 mascot_matches <- mascot_list %>% 
   inner_join(match_all, by = "team")
-  
 
 by_mascot <- mascot_list %>% 
   group_by(mas_category) %>% 
