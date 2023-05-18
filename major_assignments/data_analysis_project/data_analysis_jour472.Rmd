@@ -768,7 +768,7 @@ boxplot(mascot_list$tot_shutouts ~ mascot_list$mas_category)
 ```
 ## Overall Reflections
 
-Overall, there were a lot more complications than anticipated in this project. We dealt with a lot of different chaos in terms of the teams not being standardized and having to find unique ways of connecting dataframes. 
+Overall, there were a lot more complications than anticipated in this project. We dealt with a lot of different chaos in terms of the teams not being standardized and having to find unique ways of connecting dataframes. For future steps on question 1, we would want to specifically talk to some teams and possibly track them through a couple of home and away games in a play-by-play style. What seems to be making the players uncomfortable or causes them to perform differently?
 
 ## Caveats and Limitations:
 - Some statistics in 2020 are not present in 2021 and 2022, and vice versa
