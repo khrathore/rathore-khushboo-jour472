@@ -433,8 +433,10 @@ start_play <- player_team %>%
   pivot_wider(names_from = "yr", values_from = "starter") %>% 
   select(institution, conference, Fr, So, Jr, Sr) %>% 
   left_join(team_unique, by = c("institution", "conference")) %>% 
-  group_by(institution, conference)
+  distinct(institution, conference, .keep_all = TRUE)
   
+top_under <- start_play %>% 
+  filter(So > 50 | Fr > 50)
 
 conference_stats <- institution_year %>% 
   group_by(conference) %>% 
@@ -457,8 +459,6 @@ conference_startplay <- start_play %>%
     mean_goals = round(mean(avg_goals),2),
     mean_foul = round(mean(avg_fouls),2)
   )
-
-boxplot(conference_startplay$mean_goals ~ conference_startplay$fr_sp)
 
 comp_eligible_played <- conference_stats %>% 
   left_join(conference_startplay, by = c("conference", "mean_goals", "mean_foul")) %>% 
@@ -714,8 +714,14 @@ mascot_list <- match_all %>%
   )) %>% 
   replace(is.na(.), 0) 
 
-mascot_matches <- mascot_list %>% 
-  inner_join(match_all, by = "team")
+mascot_matches <- match_all %>%
+  select(team, team_id, opponent, opponent_id) %>% 
+  mutate(team_id = as.character(team_id)) %>% 
+  left_join(team_crosswalk, by = c("team", "team_id")) %>% 
+  select(team, team_id, opponent, opponent_id, mascot) %>% 
+  rename(mascot_team = mascot) %>% 
+  left_join(team_crosswalk, by = c(""))
+  
 
 by_mascot <- mascot_list %>% 
   group_by(mas_category) %>% 
