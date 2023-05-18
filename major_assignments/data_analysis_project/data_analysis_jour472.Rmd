@@ -678,9 +678,7 @@ NATURE: crimson tide, cyclones, Sycamores, (lady) flame, beach, hurricanes, buck
 
 MISC: big red, big green, purple aces, crimson, pride, Fighting Illini, Ragin' Cajuns, Ramblers, mean green, blue hose, the Red Flash, rockets, lady topper, tribe
 
-Based on the mascot question, we had a feeling that the mascot with the most success would be an animal because that is the most common mascot to have in women’s college soccer. We sorted the mascots into categories: animal, mythical, people, nature, and miscellaneous. Though we had some trouble with categorizing (an issue was that Georgetown’s mascot is officially a Hoya, whereas their mascot on every scrap of merchandise is a bulldog), we were able to sort accordingly. Another problem we had was that JMU’s mascot is a duke (dog) whereas Duquesne is a duke (person of high class in a royal sense). So despite some minor differences, we sorted the groups accordingly. It would be interesting to see how different mascots do against each other, like do animals typically beat mythical creatures, etc. 
 
-It's worth nothing that teams from nature based names actually do better in some of these fields. However, we would need to look further at which teams may be doing very well who are just in that category.
 
 ```{r}
 
