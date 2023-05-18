@@ -712,16 +712,36 @@ mascot_list <- match_all %>%
     str_detect(str_to_lower(mascot), "big red|big green|purple aces|crimson|pride|illini|cajuns|ramblers|mean green|blue hose|red flash|rockets|lady topper|tribe")~"miscellaneous",
     TRUE~"animal"
   )) %>% 
-  replace(is.na(.), 0) 
+  replace(is.na(.), 0) %>% 
+  select(mascot, mas_category)
 
 mascot_matches <- match_all %>%
-  select(team, team_id, opponent, opponent_id) %>% 
+  select(team, team_id, opponent, opponent_id, season, outcome) %>% 
   mutate(team_id = as.character(team_id)) %>% 
-  left_join(team_crosswalk, by = c("team", "team_id")) %>% 
-  select(team, team_id, opponent, opponent_id, mascot) %>% 
-  rename(mascot_team = mascot) %>% 
-  left_join(team_crosswalk, by = c(""))
-  
+  inner_join(tc_season, by = c("team_id", "season")) %>% 
+  select(team.x, team_id, opponent, opponent_id, mascot, season, outcome) %>% 
+  rename(mascot_team = mascot, team = team.x) %>% 
+  mutate(opponent_id = as.character(opponent_id)) %>% 
+  inner_join(tc_season, by = c("opponent_id" = "team_id", "season")) %>% 
+  select(team.x:mascot, -institution) %>% 
+  rename(mascot_opponent = mascot, team = team.x) %>% 
+  inner_join(mascot_list, by = c("mascot_team" = "mascot")) %>% 
+  rename(category_team = mas_category, team = team.x) %>% 
+  select(-team.y) %>% 
+  left_join(mascot_list, by = c("mascot_opponent" = "mascot")) %>% 
+  rename(category_opponent = mas_category, team = team.x) %>% 
+  select(-team.y) %>% 
+  distinct(team_id, opponent_id, season, .keep_all = TRUE)
+
+
+mascot_comp <- mascot_matches %>% 
+  group_by(category_team, category_opponent, outcome) %>% 
+  summarize(
+    count = n()
+  ) %>% 
+  pivot_wider(names_from = outcome, values_from = count) %>% 
+  clean_names() %>% 
+  mutate(win_percent = round(win/(win+loss+draw)*100,2))
 
 by_mascot <- mascot_list %>% 
   group_by(mas_category) %>% 
@@ -746,5 +766,6 @@ boxplot(mascot_list$tot_shutouts ~ mascot_list$mas_category)
 - No game count or shots on goal data for 2020 players, not sure if this was a scrape problem or something else.
 - Data in Question 4 was divided by conference and team. If teams changed conferences, especially when moving up to a harder one, they have two datapoints in the chart, and one is often extremely small.
 - Due to various lacks of standardization, some answers may not be completely accurate. We tried our best to standardize everything, but it is possible that we missed something.
+- Some team data may have been lost while trying to join datasets that were not super friendly with each other
 
 
